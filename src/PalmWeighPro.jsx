@@ -1641,7 +1641,7 @@ function AppSettings(props) {
       <Card>
         <div style={{ fontSize:12, color:T.accent, fontWeight:700, marginBottom:14 }}>SYSTEM INFORMATION</div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, fontSize:12 }}>
-          {[["System","PalmWeigh Pro"],["Version","v4.1 Phase 1 UAT"],["Company",COMPANY],["Logged In",props.currentUser ? props.currentUser.name : "--"],["Role",props.currentUser ? props.currentUser.role.toUpperCase() : "--"]].map(function(p) {
+          {[["System","PalmWeigh Pro"],["Version","v0.4 Phase 1 UAT"],["Company",COMPANY],["Logged In",props.currentUser ? props.currentUser.name : "--"],["Role",props.currentUser ? props.currentUser.role.toUpperCase() : "--"]].map(function(p) {
             return (
               <div key={p[0]} style={{ padding:"8px 10px", background:T.bg, borderRadius:6 }}>
                 <div style={{ fontSize:10, color:T.dim, marginBottom:2 }}>{p[0]}</div>
@@ -2110,7 +2110,7 @@ export default function PalmWeighPro() {
             {!collapsed && (
               <div>
                 <div style={{ fontFamily:"IBM Plex Mono,monospace", fontWeight:900, color:T.accent, fontSize:13, letterSpacing:-0.5 }}>PALMWEIGH</div>
-                <div style={{ fontSize:9, color:T.dim, letterSpacing:1.5 }}>PRO - SABAH</div>
+                <div style={{ fontSize:9, color:T.dim, letterSpacing:1.5 }}>PRO - DEMO</div>
               </div>
             )}
             <button onClick={function() { setCollapsed(function(c) { return !c; }); }}
