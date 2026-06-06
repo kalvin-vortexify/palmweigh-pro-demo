@@ -14,18 +14,21 @@ const T = {
 // ---- CONSTANTS --------------------------------------------------------------
 const COMPANY = "Johor Palm Resources Sdn Bhd";
 
-const PRODUCTS = [
-  "Fresh Fruit Bunch (FFB)",
-  "Empty Fruit Bunch (EFB)",
-  "Palm Kernel",
-  "Shell",
-  "Fiber",
+const PRODUCTS = ["FFB","EFB","Shell","Fiber","Others"];
+
+const HARVESTERS0 = [
+  { id:"h1", name:"Zulkifli bin Hassan",  active:true },
+  { id:"h2", name:"Muthu a/l Rajan",      active:true },
+  { id:"h3", name:"Rosli bin Othman",     active:true },
+  { id:"h4", name:"Selvam a/l Kumar",     active:true },
+  { id:"h5", name:"Ong Boon Seng",        active:true },
 ];
 
 const STATIONS = [
-  { id:"s1", name:"WB01 - Johor Bahru",  location:"Johor Bahru",  prefix:"WB01" },
-  { id:"s2", name:"WB02 - Batu Pahat",   location:"Batu Pahat",   prefix:"WB02" },
-  { id:"s3", name:"WB03 - Kluang",       location:"Kluang",       prefix:"WB03" },
+  { id:"s1", name:"Johor Bahru",  location:"Johor Bahru", prefix:"JB"  },
+  { id:"s2", name:"Segamat",      location:"Segamat",     prefix:"SG"  },
+  { id:"s3", name:"Muar",         location:"Muar",        prefix:"MU"  },
+  { id:"s4", name:"Kluang",       location:"Kluang",      prefix:"KLG" },
 ];
 
 const SUPPLIERS0 = [
@@ -59,7 +62,7 @@ function makeTx(i) {
   const sup = SUPPLIERS0[i % 5];
   const drv = DRIVERS0[i % 5];
   const veh = VEHICLES0[i % 5];
-  const sta = STATIONS[i % 3];
+  const sta = STATIONS[i % 4];
   const gross = 14000 + Math.round(Math.random() * 6000);
   const net = gross - veh.tare;
   const date = new Date(Date.now() - (200 - i) * 3600000 * 3);
@@ -69,18 +72,19 @@ function makeTx(i) {
     supplierId: sup.id, supplierName: sup.name, supplierCode: sup.code,
     driverId: drv.id, driverName: drv.name,
     vehicleId: veh.id, plate: veh.plate, vehicleType: veh.type,
-    product: PRODUCTS[i % 3],
+    product: PRODUCTS[i % 5],
+    harvester: "",
     customerType: "Registered Supplier",
     grossKg: gross, tareKg: veh.tare, netKg: gross - veh.tare,
     ticketType: i % 2 === 0 ? "Normal Invoice" : "Cash Bill",
     status: i % 15 === 0 ? "pending_out" : "completed",
     weightIn: date.toISOString(),
     weightOut: i % 15 === 0 ? null : new Date(date.getTime() + 600000 + Math.random() * 600000).toISOString(),
-    operator: "OPR001", remarks: "",
+    operator: "OPR001", createdBy: "operator", createdAt: date.toISOString(), ticketSource: "SCALE", remarks: "",
   };
 }
 const TX0 = Array.from({ length: 200 }, (_, i) => makeTx(i));
-const COUNTERS0 = { WB01: 201, WB02: 201, WB03: 201 };
+const COUNTERS0 = { JB: 201, SG: 201, MU: 201, KLG: 201 };
 
 // ---- HELPERS ----------------------------------------------------------------
 function fmt(n) { return n != null ? n.toLocaleString("en-MY") : "-"; }
@@ -132,6 +136,7 @@ var IC = {
   scale:     "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
   plus:      "M12 5v14M5 12h14",
   edit:      "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
+  edit:      "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
   check:     "M20 6L9 17l-5-5",
   x:         "M18 6L6 18M6 6l12 12",
   search:    "M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z",
@@ -145,6 +150,7 @@ var IC = {
   alert:     "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01",
   payroll:   "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
   rocket:    "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.53 2-4c1.62-.48 3 0 3 0M12 15v5s3.53-.55 4-2c.48-1.62 0-3 0-3",
+  invoice:   "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 18v-6M9 15h6",
 };
 
 // ---- SHARED UI --------------------------------------------------------------
@@ -388,7 +394,7 @@ function ScaleSim(props) {
 
   useEffect(function() {
     if (phase === PH.IDLE || phase === PH.CAPTURED) return;
-    var A = 2400, S = 4200, H = 1400;
+    var A = 600, S = 1400, H = 800;
 
     function tick(now) {
       var el = now - t0Ref.current;
@@ -399,7 +405,7 @@ function ScaleSim(props) {
         var x = lrp(-160, 101, eOut(t));
         setTruckX(x);
         setSpk(t * 720);
-        var w1 = Math.round(eOut(t) * targetWeight * 0.1);
+        var w1 = Math.round(eOut(t) * targetWeight * 0.6);
         setDisp(w1);
         setBars(function(p) { var n = p.slice(1); n.push(w1); return n; });
         if (el >= A) {
@@ -633,18 +639,13 @@ function Dashboard(props) {
         <DataTable
           cols={[
             { key:"id",           label:"Ticket No",   render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.accent, fontWeight:700 }}>{v}</span>; } },
-            { key:"supplierName", label:"Customer / Supplier", render: function(v, row) {
-              return (
-                <div>
-                  <div>{v}</div>
-                  <Badge label={row.customerType === "Walk-In Customer" ? "Walk-In" : "Supplier"} color={row.customerType === "Walk-In Customer" ? T.amber : T.accent} />
-                </div>
-              );
-            }},
+            { key:"supplierName", label:"Supplier" },
             { key:"plate",        label:"Vehicle"  },
-            { key:"grossKg",      label:"Gross (kg)", render: function(v) { return fmt(v); } },
-            { key:"netKg",        label:"Net (kg)",   render: function(v) { return <span style={{ color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>{fmt(v)}</span>; } },
+            { key:"grossKg", label:"Gross (kg)", render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace" }}>{fmt(v)}</span>; } },
+            { key:"tareKg",  label:"Tare (kg)",  render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.amber }}>{v!=null?fmt(v):"--"}</span>; } },
+            { key:"netKg",   label:"Net (kg)",   render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.accent, fontWeight:700 }}>{v!=null?fmt(v):"--"}</span>; } },
             { key:"ticketType",   label:"Type",       render: function(v) { return <Badge label={v === "Cash Bill" ? "Cash Bill" : "Normal Inv"} color={v === "Cash Bill" ? T.amber : T.blue} />; } },
+            { key:"ticketSource", label:"Source",     render: function(v) { return <Badge label={v || "SCALE"} color={v === "MANUAL" ? T.purple : T.blue} />; } },
             { key:"status",       label:"Status",     render: function(v) { return <Badge label={v === "completed" ? "DONE" : "PENDING"} color={v === "completed" ? T.accent : T.amber} />; } },
             { key:"weightIn",     label:"Time In",    render: function(v) { return fmtD(v); } },
           ]}
@@ -655,223 +656,356 @@ function Dashboard(props) {
   );
 }
 
-// ---- WEIGH IN ---------------------------------------------------------------
+// ---- QUICK CREATE MODAL ----------------------------------------------------
+function QuickCreate(props) {
+  var title=props.title, fields=props.fields, onSave=props.onSave, onClose=props.onClose;
+  var [form, setForm] = useState({});
+  function setF(k,v) { setForm(function(f){ return Object.assign({},f,{[k]:v}); }); }
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:600, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <Card style={{ width:380, border:"1px solid "+T.accent+"44" }}>
+        <div style={{ fontSize:13, fontWeight:700, color:T.accent, marginBottom:14 }}>{"+ New "+title}</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {fields.map(function(f) {
+            return <FInput key={f.key} label={f.label} value={form[f.key]||""} onChange={function(v){setF(f.key,v);}} placeholder={f.placeholder||""} required={f.required} options={f.options} />;
+          })}
+        </div>
+        <div style={{ display:"flex", gap:8, marginTop:14 }}>
+          <Btn label="Save" icon="check" onClick={function(){ onSave(form); onClose(); }} />
+          <Btn label="Cancel" icon="x" onClick={onClose} variant="ghost" />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ---- WEIGH IN ----------------------------------------------------------------
+// Flow: Scale screen (capture or manual entry) -> Ticket Details -> Save
 function WeighIn(props) {
-  var txs = props.txs, setTxs = props.setTxs;
-  var drivers = props.drivers, vehicles = props.vehicles, suppliers = props.suppliers;
-  var stationId = props.stationId, counters = props.counters, setCounters = props.setCounters;
-  var stations = props.stations;
+  var txs=props.txs, setTxs=props.setTxs;
+  var drivers=props.drivers,     setDrivers=props.setDrivers;
+  var vehicles=props.vehicles,   setVehicles=props.setVehicles;
+  var suppliers=props.suppliers, setSuppliers=props.setSuppliers;
+  var harvesters=props.harvesters||[], setHarvesters=props.setHarvesters;
+  var stationId=props.stationId, counters=props.counters, setCounters=props.setCounters;
+  var stations=props.stations,   currentUser=props.currentUser;
 
-  // Customer type toggle
-  var [custType,    setCustType]    = useState("registered"); // "registered" | "walkin"
+  var isAdmin = currentUser && (currentUser.role==="admin" || currentUser.role==="supervisor");
 
-  // Registered supplier fields
+  // Step: "scale" | "details"
+  var [step,       setStep]       = useState("scale");
+  // Capture mode: "scale" | "manual"
+  var [captMode,   setCaptMode]   = useState("scale");
+  var [grossKg,    setGrossKg]    = useState(null);
+  // Manual entry fields
+  var [manualKg,   setManualKg]   = useState("");
+  var [manualReason, setManualReason] = useState("Scale Offline");
+
+  // Ticket detail fields
   var [vehicleId,  setVehicleId]  = useState("");
   var [supplierId, setSupplierId] = useState("");
   var [driverId,   setDriverId]   = useState("");
-
-  // Walk-in fields
-  var [wiName,   setWiName]   = useState("");
-  var [wiPhone,  setWiPhone]  = useState("");
-  var [wiPlate,  setWiPlate]  = useState("");
-
-  // Common fields
+  var [harvester,  setHarvester]  = useState("");
   var [product,    setProduct]    = useState(PRODUCTS[0]);
   var [remarks,    setRemarks]    = useState("");
-  var [grossKg,    setGrossKg]    = useState(null);
-  var [showScale,  setShowScale]  = useState(false);
+
+  // Inline modals
+  var [modal, setModal] = useState(null);
+  // Success state
   var [successTicket, setSuccessTicket] = useState(null);
 
-  var selVeh = vehicles.find(function(v) { return v.id === vehicleId; });
-  var selSup = suppliers.find(function(s) { return s.id === supplierId; });
-  var sta    = stations.find(function(s) { return s.id === stationId; }) || stations[0];
+  var sta = stations.find(function(s){return s.id===stationId;})||stations[0];
+  var seq = counters[sta.prefix]||1;
+  var nextTicketId = sta.prefix+"-"+String(seq).padStart(6,"0");
+  var targetGross  = 14000+Math.round(Math.random()*5000);
 
-  var targetGross = 14000 + Math.round(Math.random() * 5000);
-  var seq         = counters[sta.prefix] || 1;
-  var nextTicketId = sta.prefix + "-" + String(seq).padStart(6, "0");
+  var vehicleOptions   = vehicles.filter(function(v){return v.active;}).map(function(v){return{value:v.id,label:v.plate};});
+  var supplierOptions  = suppliers.filter(function(s){return s.active;}).map(function(s){return{value:s.id,label:s.name};});
+  var driverOptions    = drivers.filter(function(d){return d.active;}).map(function(d){return{value:d.id,label:d.name};});
+  var harvesterOptions = harvesters.filter(function(h){return h.active;}).map(function(h){return{value:h.name,label:h.name};});
+  var productOptions   = PRODUCTS.map(function(p){return{value:p,label:p};});
+  var reasonOptions    = ["Scale Offline","Indicator Failure","Backdated Entry","Manual Correction"].map(function(r){return{value:r,label:r};});
 
-  var isRegistered = custType === "registered";
+  var canConfirm = vehicleId && supplierId && driverId;
 
-  var canProceed = isRegistered
-    ? (vehicleId && supplierId && driverId)
-    : (wiName.trim() && wiPhone.trim() && wiPlate.trim());
-
-  var canConfirm = grossKg && canProceed;
-
-  var vehicleOptions  = vehicles.filter(function(v) { return v.active; }).map(function(v) { return { value:v.id, label:v.plate }; });
-  var supplierOptions = suppliers.filter(function(s) { return s.active; }).map(function(s) { return { value:s.id, label:s.name }; });
-  var driverOptions   = drivers.filter(function(d) { return d.active; }).map(function(d) { return { value:d.id, label:d.name }; });
-  var productOptions  = PRODUCTS.map(function(p) { return { value:p, label:p }; });
-
-  var displayPlate = isRegistered ? (selVeh ? selVeh.plate : "") : wiPlate.trim().toUpperCase();
-
-  function resetForm() {
-    setVehicleId(""); setSupplierId(""); setDriverId("");
-    setWiName(""); setWiPhone(""); setWiPlate("");
-    setProduct(PRODUCTS[0]); setRemarks(""); setGrossKg(null); setShowScale(false);
+  function resetAll() {
+    setStep("scale"); setGrossKg(null); setCaptMode("scale");
+    setManualKg(""); setManualReason("Scale Offline");
+    setVehicleId(""); setSupplierId(""); setDriverId(""); setHarvester("");
+    setProduct(PRODUCTS[0]); setRemarks("");
   }
 
-  function handleCapture(w) { setGrossKg(w); }
+  function handleScaleCapture(w) { setGrossKg(w); setStep("details"); }
+
+  function handleManualConfirm() {
+    var kg = parseFloat(manualKg);
+    if (!kg || kg <= 0) { alert("Please enter a valid weight."); return; }
+    setGrossKg(kg);
+    setStep("details");
+  }
 
   function handleSubmit() {
-    if (!grossKg || !canProceed) return;
-    var prefix = sta.prefix;
-    var s = counters[prefix] || 1;
-    var id = prefix + "-" + String(s).padStart(6, "0");
-    var newTx;
-    if (isRegistered) {
-      var drv = drivers.find(function(d) { return d.id === driverId; });
-      var veh = selVeh;
-      var sup = selSup;
-      if (!drv || !veh || !sup) return;
-      newTx = {
-        id: id, stationId: stationId, stationPrefix: prefix,
-        customerType: "Registered Supplier",
-        supplierId: sup.id, supplierName: sup.name, supplierCode: sup.code,
-        driverId: drv.id, driverName: drv.name,
-        vehicleId: veh.id, plate: veh.plate, vehicleType: veh.type,
-        product: product,
-        grossKg: grossKg, tareKg: null, netKg: null,
-        ticketType: "Normal Invoice", status: "pending_out",
-        weightIn: new Date().toISOString(), weightOut: null,
-        operator: "OPR001", remarks: remarks,
-      };
-    } else {
-      var plate = wiPlate.trim().toUpperCase();
-      newTx = {
-        id: id, stationId: stationId, stationPrefix: prefix,
-        customerType: "Walk-In Customer",
-        supplierId: null, supplierName: wiName.trim(), supplierCode: "WALKIN",
-        wiPhone: wiPhone.trim(),
-        driverId: null, driverName: wiName.trim(),
-        vehicleId: null, plate: plate, vehicleType: "Unknown",
-        product: product,
-        grossKg: grossKg, tareKg: null, netKg: null,
-        ticketType: "Cash Bill", status: "pending_out",
-        weightIn: new Date().toISOString(), weightOut: null,
-        operator: "OPR001", remarks: remarks,
-      };
-    }
-    setTxs(function(prev) { return [newTx].concat(prev); });
-    setCounters(function(c) { var n = Object.assign({}, c); n[prefix] = s + 1; return n; });
-    var createdId = id;
-    var createdGross = grossKg;
-    resetForm();
-    setSuccessTicket({ id: createdId, grossKg: createdGross, custType: custType });
+    if (!grossKg || !canConfirm) return;
+    var prefix=sta.prefix, s=counters[prefix]||1;
+    var id=prefix+"-"+String(s).padStart(6,"0");
+    var now=new Date().toISOString();
+    var who=(currentUser&&currentUser.name)||"Operator";
+    var drv=drivers.find(function(d){return d.id===driverId;});
+    var veh=vehicles.find(function(v){return v.id===vehicleId;});
+    var sup=suppliers.find(function(s){return s.id===supplierId;});
+    if (!drv||!veh||!sup) return;
+    var isManual = captMode==="manual";
+    var newTx = {
+      id:id, stationId:stationId, stationPrefix:prefix,
+      customerType:"Registered Supplier",
+      supplierId:sup.id, supplierName:sup.name, supplierCode:sup.code,
+      driverId:drv.id, driverName:drv.name,
+      vehicleId:veh.id, plate:veh.plate, vehicleType:veh.type,
+      harvester:harvester, product:product,
+      grossKg:grossKg, tareKg:null, netKg:null,
+      ticketType:"Normal Invoice", status:"pending_out",
+      ticketSource: isManual ? "MANUAL" : "SCALE",
+      manualEntry: isManual,
+      manualReason: isManual ? manualReason : "",
+      capturedBy: who,
+      weightIn:now, weightOut:null,
+      createdBy:who, createdAt:now,
+      operator:who, remarks:remarks,
+    };
+    setTxs(function(prev){return[newTx].concat(prev);});
+    setCounters(function(c){var n=Object.assign({},c);n[prefix]=s+1;return n;});
+    var cid=id, cg=grossKg, cm=isManual;
+    resetAll();
+    setSuccessTicket({id:cid, grossKg:cg, isManual:cm});
   }
 
+  // Quick-create save handlers
+  function saveVehicle(f) {
+    if (!f.plate) return;
+    var nv={id:"v_"+Date.now(), plate:f.plate.trim().toUpperCase(), type:f.type||"Lorry", tare:parseInt(f.tare)||8000, rfid:"", driverId:"", stationId:stationId, active:true};
+    setVehicles(function(prev){return prev.concat([nv]);});
+    setVehicleId(nv.id);
+  }
+  function saveSupplier(f) {
+    if (!f.name) return;
+    var ns={id:"sup_"+Date.now(), name:f.name.trim(), code:f.code||(f.name.trim().slice(0,3).toUpperCase()), address:f.address||"", contact:f.contact||"", active:true};
+    setSuppliers(function(prev){return prev.concat([ns]);});
+    setSupplierId(ns.id);
+  }
+  function saveDriver(f) {
+    if (!f.name) return;
+    var nd={id:"d_"+Date.now(), name:f.name.trim(), ic:f.ic||"", phone:f.phone||"", rfid:"", license:f.license||"", stationId:stationId, active:true};
+    setDrivers(function(prev){return prev.concat([nd]);});
+    setDriverId(nd.id);
+  }
+  function saveHarvester(f) {
+    if (!f.name) return;
+    var nh={id:"h_"+Date.now(), name:f.name.trim(), active:true};
+    setHarvesters(function(prev){return prev.concat([nh]);});
+    setHarvester(f.name.trim());
+  }
+
+  var MODALS = {
+    vehicle:  { title:"Vehicle",  fields:[{key:"plate",label:"Plate No",required:true,placeholder:"e.g. JPV1234"},{key:"type",label:"Type",placeholder:"Lorry / Truck / Pickup"}], onSave:saveVehicle },
+    supplier: { title:"Supplier", fields:[{key:"name",label:"Company Name",required:true},{key:"code",label:"Code",placeholder:"e.g. JPR"},{key:"contact",label:"Contact No"}], onSave:saveSupplier },
+    driver:   { title:"Driver",   fields:[{key:"name",label:"Full Name",required:true},{key:"ic",label:"IC No"},{key:"phone",label:"Phone"},{key:"license",label:"License No"}], onSave:saveDriver },
+    harvester:{ title:"Harvester",fields:[{key:"name",label:"Harvester Name",required:true}], onSave:saveHarvester },
+  };
+
+  // ---- SUCCESS SCREEN --------------------------------------------------------
   if (successTicket) {
     return (
       <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:400 }}>
-        <Card style={{ maxWidth:440, width:"100%", textAlign:"center", padding:40, border:"1px solid " + T.accent + "44" }}>
-          <div style={{ width:56, height:56, borderRadius:"50%", background:T.accent + "22", border:"2px solid " + T.accent, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
-            <Ic d={IC.check} size={28} color={T.accent} />
+        <Card style={{ maxWidth:460, width:"100%", textAlign:"center", padding:40, border:"1px solid "+T.accent+"44" }}>
+          <div style={{ width:60, height:60, borderRadius:"50%", background:T.accent+"22", border:"2px solid "+T.accent, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+            <Ic d={IC.check} size={30} color={T.accent} />
           </div>
           <div style={{ fontSize:16, fontWeight:800, color:T.text, marginBottom:6 }}>Ticket Created Successfully</div>
           <div style={{ fontSize:12, color:T.mid, marginBottom:24 }}>Status: Pending Weigh Out</div>
           <div style={{ background:T.bg, borderRadius:10, padding:"16px 20px", marginBottom:24, textAlign:"left" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-              <span style={{ fontSize:11, color:T.dim }}>Ticket No</span>
-              <span style={{ fontFamily:"IBM Plex Mono,monospace", fontWeight:700, color:T.accent }}>{successTicket.id}</span>
-            </div>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
-              <span style={{ fontSize:11, color:T.dim }}>First Weight</span>
-              <span style={{ fontFamily:"IBM Plex Mono,monospace", fontWeight:700, color:T.blue }}>{fmt(successTicket.grossKg)} kg</span>
-            </div>
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <span style={{ fontSize:11, color:T.dim }}>Customer Type</span>
-              <Badge label={successTicket.custType === "registered" ? "Registered Supplier" : "Walk-In Customer"} color={successTicket.custType === "registered" ? T.accent : T.amber} />
-            </div>
+            {[
+              ["Ticket No",    successTicket.id,                          T.accent],
+              ["Gross Weight", fmt(successTicket.grossKg)+" kg",          T.blue  ],
+              ["Entry Mode",   successTicket.isManual?"Manual Entry":"Scale Reading", successTicket.isManual?T.amber:T.accent],
+            ].map(function(row){
+              return (
+                <div key={row[0]} style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                  <span style={{ fontSize:11, color:T.dim }}>{row[0]}</span>
+                  <span style={{ fontFamily:"IBM Plex Mono,monospace", fontWeight:700, color:row[2] }}>{row[1]}</span>
+                </div>
+              );
+            })}
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            <Btn label="Go to Weigh Out" icon="weighOut" onClick={function() { setSuccessTicket(null); props.onGoWeighOut && props.onGoWeighOut(); }} full={true} />
-            <Btn label="Create Another Ticket" icon="plus" onClick={function() { setSuccessTicket(null); }} variant="ghost" full={true} />
-            <Btn label="View Pending Queue" icon="queue" onClick={function() { setSuccessTicket(null); props.onGoQueue && props.onGoQueue(); }} variant="ghost" full={true} />
+            <Btn label="Go to Weigh Out" icon="weighOut" onClick={function(){setSuccessTicket(null);props.onGoWeighOut&&props.onGoWeighOut();}} full={true} />
+            <Btn label="Create Another Ticket" icon="plus" onClick={function(){setSuccessTicket(null);}} variant="ghost" full={true} />
+            <Btn label="View Pending Queue" icon="queue" onClick={function(){setSuccessTicket(null);props.onGoQueue&&props.onGoQueue();}} variant="ghost" full={true} />
           </div>
         </Card>
       </div>
     );
   }
 
-  return (
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 380px", gap:18 }}>
-      <div>
+  // ---- STEP 1: WEIGHBRIDGE TERMINAL ------------------------------------------
+  if (step==="scale") {
+    var mc1 = null; // no modals needed on scale screen
+    return (
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 380px", gap:18 }}>
         <Card>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
-            <div style={{ fontSize:12, color:T.accent, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>New Weigh-In</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+            <div style={{ fontSize:12, color:T.accent, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>Weighbridge Terminal</div>
             <div style={{ fontFamily:"IBM Plex Mono,monospace", fontSize:11, color:T.dim }}>
-              Next: <span style={{ color:T.amber }}>{nextTicketId}</span>
+              Next Ticket: <span style={{ color:T.amber }}>{nextTicketId}</span>
             </div>
           </div>
 
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:11, color:T.mid, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase", marginBottom:8 }}>Customer Type</div>
+          <div style={{ padding:"16px 20px", background:T.bg, borderRadius:10, marginBottom:16 }}>
+            <div style={{ fontSize:10, color:T.mid, fontWeight:700, letterSpacing:0.5, textTransform:"uppercase", marginBottom:10 }}>Capture Mode</div>
             <div style={{ display:"flex", gap:8 }}>
-              <button onClick={function() { setCustType("registered"); resetForm(); setGrossKg(null); }} style={{
-                flex:1, padding:"10px 14px", borderRadius:8, cursor:"pointer",
-                fontWeight:700, fontSize:12, fontFamily:"IBM Plex Mono,monospace",
-                background: isRegistered ? T.accent + "22" : T.bg,
-                border: "2px solid " + (isRegistered ? T.accent : T.border),
-                color: isRegistered ? T.accent : T.mid,
-              }}>Registered Supplier</button>
-              <button onClick={function() { setCustType("walkin"); resetForm(); setGrossKg(null); }} style={{
-                flex:1, padding:"10px 14px", borderRadius:8, cursor:"pointer",
-                fontWeight:700, fontSize:12, fontFamily:"IBM Plex Mono,monospace",
-                background: !isRegistered ? T.amber + "22" : T.bg,
-                border: "2px solid " + (!isRegistered ? T.amber : T.border),
-                color: !isRegistered ? T.amber : T.mid,
-              }}>Walk-In Customer</button>
+              <button onClick={function(){setCaptMode("scale");}} style={{ flex:1, padding:"10px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, fontFamily:"IBM Plex Mono,monospace", background:captMode==="scale"?T.accent+"22":T.bg, border:"2px solid "+(captMode==="scale"?T.accent:T.border), color:captMode==="scale"?T.accent:T.mid }}>Scale Reading</button>
+              <button
+                onClick={function(){ if(!isAdmin){alert("Manual entry requires Admin or Supervisor access.");return;} setCaptMode("manual"); }}
+                style={{ flex:1, padding:"10px", borderRadius:8, cursor:"pointer", fontWeight:700, fontSize:12, fontFamily:"IBM Plex Mono,monospace", background:captMode==="manual"?T.amber+"22":T.bg, border:"2px solid "+(captMode==="manual"?T.amber:T.border), color:captMode==="manual"?T.amber:(isAdmin?T.mid:T.dim), opacity:isAdmin?1:0.5 }}
+              >Manual Entry{!isAdmin&&<span style={{ fontSize:9, display:"block", marginTop:1 }}>Admin only</span>}</button>
             </div>
           </div>
 
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            {isRegistered ? (
-              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                <FInput label="Vehicle *" value={vehicleId} onChange={setVehicleId} options={vehicleOptions} />
-                <FInput label="Supplier / Customer *" value={supplierId} onChange={setSupplierId} options={supplierOptions} />
-                <FInput label="Driver *" value={driverId} onChange={setDriverId} options={driverOptions} />
+          {captMode==="manual" && isAdmin && (
+            <div style={{ padding:"16px", background:T.amber+"11", border:"1px solid "+T.amber+"44", borderRadius:10, marginBottom:16 }}>
+              <div style={{ fontSize:11, color:T.amber, fontWeight:700, marginBottom:10, letterSpacing:0.5, textTransform:"uppercase" }}>Manual Weight Entry</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <FInput label="Weight (kg) *" value={manualKg} onChange={setManualKg} type="number" placeholder="Enter gross weight in kg" />
+                <FInput label="Reason *" value={manualReason} onChange={setManualReason} options={reasonOptions} />
               </div>
-            ) : (
-              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                <FInput label="Customer Name *" value={wiName} onChange={setWiName} placeholder="Full name or company name" />
-                <FInput label="Phone Number *" value={wiPhone} onChange={setWiPhone} placeholder="e.g. 0198001234" />
-                <FInput label="Vehicle Number *" value={wiPlate} onChange={function(v) { setWiPlate(v.toUpperCase()); }} placeholder="e.g. SBK1234" />
+              <div style={{ marginTop:12, fontSize:10, color:T.amber }}>Manual entries are flagged on the ticket and in records. Captured by: {(currentUser&&currentUser.name)||"Operator"}</div>
+              <div style={{ marginTop:10 }}>
+                <Btn label="CONFIRM MANUAL WEIGHT" icon="check" onClick={handleManualConfirm} variant="amber" disabled={!manualKg} />
               </div>
-            )}
-            <FInput label="Product" value={product} onChange={setProduct} options={productOptions} />
-            <FInput label="Remarks" value={remarks} onChange={setRemarks} placeholder="Optional" />
-          </div>
-
-          {grossKg && (
-            <div style={{ marginTop:14, padding:"10px 14px", background:T.bg, borderRadius:8, fontSize:12, color:T.mid, display:"flex", gap:16, alignItems:"center" }}>
-              <span style={{ color:T.dim }}>First Weight Captured:</span>
-              <span style={{ color:T.blue, fontFamily:"IBM Plex Mono,monospace", fontSize:16, fontWeight:700 }}>{fmt(grossKg)} kg</span>
             </div>
           )}
-          <div style={{ marginTop:16, display:"flex", gap:8, flexWrap:"wrap" }}>
-            <Btn label="PROCEED TO SCALE" icon="weighIn" onClick={function() { setShowScale(true); }} disabled={!canProceed} />
-            {canConfirm && (
-              <Btn label="CONFIRM AND CREATE TICKET" icon="check" onClick={handleSubmit} variant="amber" />
-            )}
-          </div>
-        </Card>
-      </div>
 
-      <div>
-        {showScale ? (
-          <ScaleSim
-            label={"WEIGH-IN -- " + (displayPlate || "NO VEHICLE")}
-            targetWeight={targetGross}
-            onCapture={handleCapture}
-          />
-        ) : (
-          <Card style={{ textAlign:"center", padding:48 }}>
-            <Ic d={IC.scale} size={48} color={T.border} />
-            <div style={{ marginTop:14, color:T.dim, fontSize:13 }}>
-              {isRegistered ? "Select vehicle, supplier and driver then click Proceed to Scale" : "Enter customer details then click Proceed to Scale"}
+          {captMode==="scale" && (
+            <div style={{ padding:"14px", background:T.accent+"08", border:"1px solid "+T.accent+"22", borderRadius:10 }}>
+              <div style={{ fontSize:12, color:T.text, fontWeight:600, marginBottom:4 }}>Drive vehicle onto the scale</div>
+              <div style={{ fontSize:11, color:T.dim }}>Click Start Weighing on the terminal. Weight will stabilise and be captured automatically.</div>
+              <div style={{ marginTop:8, fontSize:11, color:T.dim }}>Vehicle and supplier details are entered after weight is captured.</div>
             </div>
+          )}
+        </Card>
+
+        {captMode==="scale" ? (
+          <ScaleSim label={"WEIGH-IN -- "+sta.prefix} targetWeight={targetGross} onCapture={handleScaleCapture} />
+        ) : (
+          <Card style={{ background:"#0a0f1a", textAlign:"center", padding:32 }}>
+            <div style={{ fontSize:9, color:T.dim, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>Manual Entry Mode</div>
+            <Ic d={IC.edit} size={40} color={T.amber} />
+            <div style={{ marginTop:12, fontSize:12, color:T.amber, fontWeight:600 }}>Enter weight manually on the left</div>
+            <div style={{ marginTop:6, fontSize:11, color:T.dim }}>Scale Reading is not available</div>
+            {!isAdmin && (
+              <div style={{ marginTop:12, padding:"8px 12px", background:T.red+"11", border:"1px solid "+T.red+"33", borderRadius:8, fontSize:11, color:T.red }}>
+                Admin or Supervisor permission required
+              </div>
+            )}
           </Card>
         )}
+      </div>
+    );
+  }
+
+  // ---- STEP 2: TICKET DETAILS ------------------------------------------------
+  var mc = modal ? MODALS[modal] : null;
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 380px", gap:18 }}>
+      {mc && <QuickCreate title={mc.title} fields={mc.fields} onSave={mc.onSave} onClose={function(){setModal(null);}} />}
+
+      <Card>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div style={{ fontSize:12, color:T.accent, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>Ticket Details</div>
+          <button onClick={resetAll} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:T.dim, fontFamily:"IBM Plex Mono,monospace", textDecoration:"underline" }}>Restart</button>
+        </div>
+
+        <div style={{ padding:"12px 16px", background:T.bg, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18, border:"1px solid "+T.border }}>
+          <div>
+            <div style={{ fontSize:10, color:T.dim, marginBottom:2 }}>Gross Weight Captured</div>
+            <div style={{ fontFamily:"IBM Plex Mono,monospace", fontSize:24, fontWeight:900, color:T.blue }}>{fmt(grossKg)} kg</div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontSize:10, color:T.dim, marginBottom:2 }}>Ticket No</div>
+            <div style={{ fontFamily:"IBM Plex Mono,monospace", fontSize:14, fontWeight:700, color:T.amber }}>{nextTicketId}</div>
+            {captMode==="manual" && <Badge label="MANUAL" color={T.amber} />}
+          </div>
+        </div>
+
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <label style={{ fontSize:11, color:T.mid, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>Vehicle *</label>
+              <button onClick={function(){setModal("vehicle");}} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>+ Create New</button>
+            </div>
+            <select value={vehicleId} onChange={function(e){setVehicleId(e.target.value);}} style={Object.assign({},IS)}>
+              <option value="">-- Select Vehicle --</option>
+              {vehicleOptions.map(function(o){return <option key={o.value} value={o.value}>{o.label}</option>;})}
+            </select>
+          </div>
+
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <label style={{ fontSize:11, color:T.mid, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>Supplier *</label>
+              <button onClick={function(){setModal("supplier");}} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>+ Create New</button>
+            </div>
+            <select value={supplierId} onChange={function(e){setSupplierId(e.target.value);}} style={Object.assign({},IS)}>
+              <option value="">-- Select Supplier --</option>
+              {supplierOptions.map(function(o){return <option key={o.value} value={o.value}>{o.label}</option>;})}
+            </select>
+          </div>
+
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <label style={{ fontSize:11, color:T.mid, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>Driver *</label>
+              <button onClick={function(){setModal("driver");}} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>+ Create New</button>
+            </div>
+            <select value={driverId} onChange={function(e){setDriverId(e.target.value);}} style={Object.assign({},IS)}>
+              <option value="">-- Select Driver --</option>
+              {driverOptions.map(function(o){return <option key={o.value} value={o.value}>{o.label}</option>;})}
+            </select>
+          </div>
+
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+              <label style={{ fontSize:11, color:T.mid, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>Harvester(s)</label>
+              <button onClick={function(){setModal("harvester");}} style={{ background:"none", border:"none", cursor:"pointer", fontSize:11, color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>+ Create New</button>
+            </div>
+            <select value={harvester} onChange={function(e){setHarvester(e.target.value);}} style={Object.assign({},IS)}>
+              <option value="">-- Select or skip --</option>
+              {harvesterOptions.map(function(o){return <option key={o.value} value={o.value}>{o.label}</option>;})}
+            </select>
+          </div>
+
+          <FInput label="Product" value={product} onChange={setProduct} options={productOptions} />
+          <FInput label="Remarks" value={remarks} onChange={setRemarks} placeholder="Optional" />
+        </div>
+
+        <div style={{ marginTop:16, display:"flex", gap:8, flexWrap:"wrap" }}>
+          <Btn label="SAVE WEIGH-IN TICKET" icon="check" onClick={handleSubmit} disabled={!canConfirm} />
+          <Btn label="Restart" icon="refresh" onClick={resetAll} variant="ghost" small={true} />
+        </div>
+      </Card>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        <Card style={{ background:"#0a0f1a", textAlign:"center", padding:28 }}>
+          <div style={{ fontSize:9, color:T.dim, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>Gross Weight</div>
+          <div style={{ fontFamily:"IBM Plex Mono,monospace", fontSize:42, fontWeight:900, color:T.accent, letterSpacing:-2 }}>{fmt(grossKg)}</div>
+          <div style={{ fontSize:14, color:T.dim, marginTop:2 }}>kg</div>
+          <div style={{ marginTop:12, display:"flex", justifyContent:"center", gap:8 }}>
+            <Badge label="CAPTURED" color={T.accent} />
+            {captMode==="manual" && <Badge label="MANUAL" color={T.amber} />}
+          </div>
+        </Card>
+        <Card style={{ padding:"12px 16px" }}>
+          <div style={{ fontSize:10, color:T.dim, marginBottom:6, letterSpacing:0.5, fontWeight:600, textTransform:"uppercase" }}>Step 2 of 2</div>
+          <div style={{ fontSize:11, color:T.mid, lineHeight:1.7 }}>Weight captured. Select vehicle, supplier, and driver, then save the ticket.</div>
+          {captMode==="manual" && <div style={{ marginTop:8, fontSize:11, color:T.amber }}>Reason: {manualReason}</div>}
+        </Card>
       </div>
     </div>
   );
@@ -908,13 +1042,11 @@ function PendingQueue(props) {
                   <div>
                     <div style={{ fontFamily:"IBM Plex Mono,monospace", fontWeight:700, color:T.accent, fontSize:13 }}>{tx.id}</div>
                     <div style={{ fontSize:13, color:T.text, marginTop:2, fontWeight:600 }}>{tx.plate} -- {tx.vehicleType}</div>
-                    <div style={{ fontSize:12, color:T.mid, marginTop:2, display:"flex", alignItems:"center", gap:6 }}>
-                      <span>{tx.supplierName}</span>
-                      <Badge label={tx.customerType === "Walk-In Customer" ? "Walk-In" : "Supplier"} color={tx.customerType === "Walk-In Customer" ? T.amber : T.accent} />
+                    <div style={{ fontSize:12, color:T.mid, marginTop:2 }}>
+                      {tx.supplierName}
+                      {tx.ticketSource === "MANUAL" && <span style={{ marginLeft:8 }}><Badge label="MANUAL" color={T.amber} /></span>}
                     </div>
-                    {tx.customerType !== "Walk-In Customer" && (
-                      <div style={{ fontSize:11, color:T.dim, marginTop:1 }}>Driver: {tx.driverName}</div>
-                    )}
+                    <div style={{ fontSize:11, color:T.dim, marginTop:1 }}>Driver: {tx.driverName}</div>
                     <div style={{ fontSize:11, color:T.dim, marginTop:2 }}>In: {fmtD(tx.weightIn)} | First Weight: {fmt(tx.grossKg)} kg</div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
@@ -1020,7 +1152,7 @@ function WeighOut(props) {
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, fontSize:12, marginBottom:14 }}>
               {[
                 ["Ticket No", selTx.id], ["Vehicle", selTx.plate], ["Driver", selTx.driverName],
-["Customer Type", selTx.customerType || "Registered Supplier"], ["Customer / Supplier", selTx.supplierName], ["Product", selTx.product || "FFB"],
+["Supplier", selTx.supplierName], ["Product", selTx.product || "FFB"],
                 ["First Weight (Gross)", fmt(selTx.grossKg) + " kg"], ["Time In", fmtD(selTx.weightIn)],
               ].map(function(pair) {
                 return (
@@ -1103,7 +1235,7 @@ function TicketRecords(props) {
           <div style={{ fontSize:13, color:T.accent, fontWeight:700, marginBottom:16 }}>TICKET -- {viewTx.id}</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:16 }}>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {[["Ticket No", viewTx.id], ["Station", viewTx.stationPrefix], ["Customer Type", viewTx.customerType || "Registered Supplier"], ["Ticket Type", viewTx.ticketType || "Normal Invoice"], ["Product", viewTx.product || "Fresh Fruit Bunch (FFB)"], ["Status", viewTx.status === "completed" ? "Completed" : "Pending"]].map(function(p) {
+              {[["Ticket No", viewTx.id], ["Station", viewTx.stationPrefix], ["Ticket Source", viewTx.ticketSource || "SCALE"], ["Customer Type", viewTx.customerType || "Registered Supplier"], ["Ticket Type", viewTx.ticketType || "Normal Invoice"], ["Product", viewTx.product || "Fresh Fruit Bunch (FFB)"], ["Status", viewTx.status === "completed" ? "Completed" : "Pending"]].map(function(p) {
                 return (
                   <div key={p[0]}>
                     <div style={{ fontSize:10, color:T.dim, marginBottom:2 }}>{p[0]}</div>
@@ -1113,7 +1245,7 @@ function TicketRecords(props) {
               })}
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {[["Customer / Supplier", viewTx.supplierName], ["Vehicle", viewTx.plate], ["Driver", viewTx.driverName], ["Phone", viewTx.wiPhone || "--"]].map(function(p) {
+              {[["Customer / Supplier", viewTx.supplierName], ["Vehicle", viewTx.plate], ["Driver", viewTx.driverName], ["Harvester", viewTx.harvester || "--"], ["Created By", viewTx.createdBy || "operator"], ["Created At", fmtD(viewTx.createdAt || viewTx.weightIn)]].map(function(p) {
                 return (
                   <div key={p[0]}>
                     <div style={{ fontSize:10, color:T.dim, marginBottom:2 }}>{p[0]}</div>
@@ -1193,20 +1325,16 @@ function TicketRecords(props) {
         <DataTable
           cols={[
             { key:"id",           label:"Ticket No",  render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.accent, fontWeight:700 }}>{v}</span>; } },
-            { key:"supplierName", label:"Customer / Supplier", render: function(v, row) {
-              return (
-                <div>
-                  <div>{v}</div>
-                  <Badge label={row.customerType === "Walk-In Customer" ? "Walk-In" : "Supplier"} color={row.customerType === "Walk-In Customer" ? T.amber : T.accent} />
-                </div>
-              );
-            }},
+            { key:"supplierName", label:"Supplier" },
             { key:"plate",        label:"Vehicle"  },
-            { key:"grossKg",      label:"Gross (kg)", render: function(v) { return fmt(v); } },
-            { key:"netKg",        label:"Net (kg)",   render: function(v) { return <span style={{ color:T.accent, fontFamily:"IBM Plex Mono,monospace" }}>{fmt(v)}</span>; } },
+            { key:"grossKg", label:"Gross (kg)", render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace" }}>{fmt(v)}</span>; } },
+            { key:"tareKg",  label:"Tare (kg)",  render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.amber }}>{v!=null?fmt(v):"--"}</span>; } },
+            { key:"netKg",   label:"Net (kg)",   render: function(v) { return <span style={{ fontFamily:"IBM Plex Mono,monospace", color:T.accent, fontWeight:700 }}>{v!=null?fmt(v):"--"}</span>; } },
             { key:"ticketType",   label:"Type",       render: function(v) { return <Badge label={v === "Cash Bill" ? "Cash" : "Normal"} color={v === "Cash Bill" ? T.amber : T.blue} />; } },
             { key:"status",       label:"Status",     render: function(v) { return <Badge label={v === "completed" ? "DONE" : "PENDING"} color={v === "completed" ? T.accent : T.amber} />; } },
+            { key:"ticketSource", label:"Source",     render: function(v) { return <Badge label={v || "SCALE"} color={v === "MANUAL" ? T.purple : T.blue} />; } },
             { key:"weightIn",     label:"Time In",    render: function(v) { return fmtD(v); } },
+            { key:"createdBy",    label:"Created By", render: function(v) { return <span style={{ color:T.dim, fontSize:11 }}>{v || "operator"}</span>; } },
             { key:"id",           label:"Actions",    render: function(_, row) {
               return (
                 <div style={{ display:"flex", gap:6 }}>
@@ -1227,78 +1355,101 @@ function TicketRecords(props) {
 function PrintPreview(props) {
   var tx = props.tx, onClose = props.onClose;
   if (!tx) return null;
-  var sta = STATIONS.find(function(s) { return s.id === tx.stationId; }) || { name:"--", location:"--" };
+  var sta = STATIONS.find(function(s){return s.id===tx.stationId;})||{name:"--",location:"--"};
+  var isPending = tx.status === "pending_out";
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ background:"#fff", color:"#000", width:380, borderRadius:8, padding:"28px 32px", fontFamily:"monospace", fontSize:12 }}>
-        <div style={{ textAlign:"center", borderBottom:"2px solid #000", paddingBottom:12, marginBottom:16 }}>
-          <div style={{ fontSize:15, fontWeight:900, letterSpacing:1 }}>{COMPANY}</div>
-          <div style={{ fontSize:11, marginTop:2 }}>{sta.name} -- {sta.location}</div>
-          <div style={{ fontSize:11, marginTop:1 }}>WEIGHBRIDGE TICKET</div>
-        </div>
-        <div style={{ display:"grid", gridTemplateColumns:"120px 1fr", gap:"5px 8px", marginBottom:16 }}>
-          {[
-            ["Ticket No",    tx.id],
-            ["Ticket Type",  tx.ticketType || "Normal Invoice"],
-            ["Date/Time In", fmtD(tx.weightIn)],
-            ["Date/Time Out",fmtD(tx.weightOut)],
-            ["",             ""],
-            ["Customer Type", tx.customerType || "Registered Supplier"],
-            ["Supplier",     tx.supplierName],
+      <div style={{ background:"#fff", color:"#000", width:420, borderRadius:8, padding:"24px 28px", fontFamily:"monospace", fontSize:12, maxHeight:"90vh", overflowY:"auto" }}>
 
-            ["Vehicle",      tx.plate],
-            ["Driver",       tx.driverName],
-            ["Phone",        tx.wiPhone || ""],
-            ["",             ""],
-            ["Product",      tx.product || "Fresh Fruit Bunch (FFB)"],
-            ["",             ""],
-          ].map(function(pair, i) {
-            if (!pair[0]) return [<div key={"l" + i} />, <div key={"v" + i} />];
-            return [
-              <div key={"l" + i} style={{ color:"#555", fontSize:11 }}>{pair[0]}:</div>,
-              <div key={"v" + i} style={{ fontWeight:600 }}>{pair[1]}</div>,
-            ];
-          })}
-          <div style={{ gridColumn:"span 2", borderTop:"1px dashed #999", margin:"2px 0" }} />
-          <div style={{ fontWeight:900, fontSize:13 }}>FIRST WEIGHT:</div>
-          <div style={{ fontWeight:900, fontSize:13 }}>{fmt(tx.grossKg)} kg</div>
-          <div style={{ fontWeight:900, fontSize:13 }}>SECOND WEIGHT:</div>
-          <div style={{ fontWeight:900, fontSize:13 }}>{fmt(tx.tareKg) !== "-" ? fmt(tx.tareKg) + " kg" : "Pending"}</div>
-          <div style={{ gridColumn:"span 2", borderTop:"2px solid #000", margin:"2px 0" }} />
-          <div style={{ fontWeight:900, fontSize:16 }}>NET WEIGHT:</div>
-          <div style={{ fontWeight:900, fontSize:16 }}>{tx.netKg != null ? fmt(tx.netKg) + " kg" : "Pending"}</div>
-          <div style={{ gridColumn:"span 2", borderTop:"1px dashed #999", margin:"8px 0" }} />
-          <div style={{ color:"#555", fontSize:11 }}>Operator:</div>
-          <div style={{ fontWeight:600 }}>{tx.operator}</div>
-          <div style={{ color:"#555", fontSize:11 }}>Status:</div>
-          <div style={{ fontWeight:600 }}>{tx.status === "completed" ? "COMPLETED" : "PENDING"}</div>
+        <div style={{ textAlign:"center", marginBottom:14 }}>
+          <div style={{ fontSize:16, fontWeight:900, letterSpacing:0.5 }}>{COMPANY}</div>
+          <div style={{ fontSize:11, marginTop:2, color:"#444" }}>FRESH FRUIT BUNCH RECEIVING TICKET</div>
+          <div style={{ fontSize:10, color:"#666", marginTop:1 }}>{sta.name} -- {sta.location}</div>
         </div>
-        <div style={{ marginTop:16, marginBottom:8 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
-            <div>
-              <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Issued By:</div>
-              <div style={{ borderBottom:"1px solid #000", height:28 }}></div>
-              <div style={{ fontSize:9, color:"#888", marginTop:4 }}>Name / Signature / Date</div>
-            </div>
-            <div>
-              <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Received By:</div>
-              <div style={{ borderBottom:"1px solid #000", height:28 }}></div>
-              <div style={{ fontSize:9, color:"#888", marginTop:4 }}>Name / Signature / Date</div>
-            </div>
+
+        <div style={{ border:"2px solid #000", borderRadius:4, padding:"10px 12px", marginBottom:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 16px" }}>
+            <div><span style={{ color:"#555" }}>Ticket No:</span> <strong>{tx.id}</strong></div>
+            <div><span style={{ color:"#555" }}>Date:</span> <strong>{tx.weightIn ? new Date(tx.weightIn).toLocaleDateString("en-MY") : "-"}</strong></div>
+            <div><span style={{ color:"#555" }}>Station:</span> {tx.stationPrefix}</div>
+            <div><span style={{ color:"#555" }}>Ticket Type:</span> {tx.ticketType||"Normal Invoice"}</div>
+            <div><span style={{ color:"#555" }}>Source:</span> <strong style={{ color:tx.manualEntry?"#f59e0b":"inherit" }}>{tx.ticketSource||"SCALE"}{tx.manualEntry?" ("+tx.manualReason+")":""}</strong></div>
+            <div><span style={{ color:"#555" }}>Status:</span> <strong style={{ color: isPending?"#f59e0b":"#16a34a" }}>{isPending?"PENDING WEIGH OUT":"COMPLETED"}</strong></div>
           </div>
         </div>
-        <div style={{ textAlign:"center", borderTop:"1px dashed #999", paddingTop:10, fontSize:10, color:"#777" }}>
-          Computer generated document.
+
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontWeight:900, fontSize:11, borderBottom:"1px solid #ccc", paddingBottom:3, marginBottom:6, letterSpacing:0.5 }}>SUPPLIER / CUSTOMER</div>
+          <div style={{ display:"grid", gridTemplateColumns:"110px 1fr", gap:"4px 8px" }}>
+            <div style={{ color:"#555" }}>Supplier:</div><div><strong>{tx.supplierName}</strong></div>
+            <div style={{ color:"#555" }}>Vehicle No:</div><div><strong>{tx.plate}</strong></div>
+            <div style={{ color:"#555" }}>Driver:</div><div>{tx.driverName}</div>
+            {tx.harvester && <><div style={{ color:"#555" }}>Harvester:</div><div>{tx.harvester}</div></>}
+            {tx.wiPhone   && <><div style={{ color:"#555" }}>Phone:</div><div>{tx.wiPhone}</div></>}
+            <div style={{ color:"#555" }}>Cust. Type:</div><div>{tx.customerType||"Registered Supplier"}</div>
+          </div>
         </div>
-        <div style={{ display:"flex", gap:8, marginTop:16 }}>
-          <button onClick={function() { window.print(); }} style={{ flex:1, padding:"8px", background:"#000", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700, fontSize:12 }}>PRINT</button>
-          <button onClick={onClose} style={{ flex:1, padding:"8px", background:"#eee", color:"#000", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700, fontSize:12 }}>CLOSE</button>
+
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontWeight:900, fontSize:11, borderBottom:"1px solid #ccc", paddingBottom:3, marginBottom:6, letterSpacing:0.5 }}>PRODUCT</div>
+          <div style={{ display:"grid", gridTemplateColumns:"110px 1fr", gap:"4px 8px" }}>
+            <div style={{ color:"#555" }}>Product:</div><div><strong>{tx.product||"FFB"}</strong></div>
+          </div>
+        </div>
+
+        <div style={{ border:"2px solid #000", borderRadius:4, padding:"10px 12px", marginBottom:10 }}>
+          <div style={{ fontWeight:900, fontSize:11, marginBottom:8, letterSpacing:0.5 }}>WEIGHT RECORD</div>
+          <div style={{ display:"grid", gridTemplateColumns:"110px 1fr", gap:"5px 8px" }}>
+            <div style={{ color:"#555" }}>Time In:</div><div>{tx.weightIn ? new Date(tx.weightIn).toLocaleTimeString("en-MY",{hour:"2-digit",minute:"2-digit"}) : "-"}</div>
+            <div style={{ color:"#555" }}>Time Out:</div><div>{tx.weightOut ? new Date(tx.weightOut).toLocaleTimeString("en-MY",{hour:"2-digit",minute:"2-digit"}) : "Pending"}</div>
+          </div>
+          <div style={{ borderTop:"1px dashed #999", marginTop:8, paddingTop:8, display:"grid", gridTemplateColumns:"110px 1fr", gap:"5px 8px" }}>
+            <div style={{ color:"#555" }}>Gross Weight:</div><div style={{ fontWeight:700 }}>{fmt(tx.grossKg)} kg</div>
+            <div style={{ color:"#555" }}>Tare Weight:</div><div style={{ fontWeight:700 }}>{tx.tareKg!=null ? fmt(tx.tareKg)+" kg" : "Pending"}</div>
+          </div>
+          <div style={{ borderTop:"2px solid #000", marginTop:6, paddingTop:6, display:"grid", gridTemplateColumns:"110px 1fr" }}>
+            <div style={{ fontWeight:900, fontSize:14 }}>NET WEIGHT:</div>
+            <div style={{ fontWeight:900, fontSize:14 }}>{tx.netKg!=null ? fmt(tx.netKg)+" kg" : "Pending"}</div>
+          </div>
+        </div>
+
+        {tx.remarks && (
+          <div style={{ marginBottom:10, padding:"6px 10px", background:"#f9f9f9", borderRadius:4, fontSize:11 }}>
+            <span style={{ color:"#555" }}>Remarks:</span> {tx.remarks}
+          </div>
+        )}
+
+        <div style={{ marginBottom:10, fontSize:11, color:"#555" }}>
+          <span>Created By: {tx.createdBy||"operator"}</span>
+          {"  |  "}
+          <span>Printed: {new Date().toLocaleString("en-MY",{dateStyle:"short",timeStyle:"short"})}</span>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:12 }}>
+          <div>
+            <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Issued By:</div>
+            <div style={{ borderBottom:"1px solid #000", height:28 }}></div>
+            <div style={{ fontSize:9, color:"#999", marginTop:3 }}>Name / Signature / Date</div>
+          </div>
+          <div>
+            <div style={{ fontSize:10, color:"#555", marginBottom:4 }}>Received By:</div>
+            <div style={{ borderBottom:"1px solid #000", height:28 }}></div>
+            <div style={{ fontSize:9, color:"#999", marginTop:3 }}>Name / Signature / Date</div>
+          </div>
+        </div>
+
+        <div style={{ textAlign:"center", borderTop:"1px dashed #ccc", paddingTop:8, fontSize:9, color:"#aaa" }}>
+          Computer generated document -- PalmWeigh Pro
+        </div>
+
+        <div style={{ display:"flex", gap:8, marginTop:14 }}>
+          <button onClick={function(){window.print();}} style={{ flex:1, padding:"9px", background:"#000", color:"#fff", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700, fontSize:12 }}>PRINT</button>
+          <button onClick={onClose} style={{ flex:1, padding:"9px", background:"#eee", color:"#000", border:"none", borderRadius:6, cursor:"pointer", fontWeight:700, fontSize:12 }}>CLOSE</button>
         </div>
       </div>
     </div>
   );
 }
-
 // ---- CRUD MODULE (shared) ---------------------------------------------------
 function CrudMod(props) {
   var title = props.title, color = props.color || T.accent;
@@ -1481,6 +1632,7 @@ function AppSettings(props) {
     props.setVehicles(VEHICLES0);
     props.setSuppliers(SUPPLIERS0);
     props.setCounters(COUNTERS0);
+    if (props.setHarvesters) props.setHarvesters(HARVESTERS0);
     setConf(false);
     alert("Demo data has been reset to defaults.");
   }
@@ -1524,6 +1676,21 @@ function AppSettings(props) {
           ]}
           rows={props.users}
         />
+      </Card>
+
+      <Card>
+        <div style={{ fontSize:12, color:T.accent, fontWeight:700, marginBottom:14 }}>FUTURE MODULES ROADMAP</div>
+        <div style={{ fontSize:11, color:T.dim, marginBottom:12 }}>These modules are not part of the current UAT demo and are planned for future development phases.</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {["Multi Weighbridge Branch Management","Offline Sync Centre","AI Payroll Assistant","Supplier Settlement","Statement of Account","Data Migration Utility","Hardware Indicator Integration","RFID / QR Vehicle Tracking"].map(function(m){
+            return (
+              <div key={m} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:T.bg, borderRadius:6 }}>
+                <span style={{ fontSize:12, color:T.text }}>{m}</span>
+                <Badge label="Future" color={T.purple} />
+              </div>
+            );
+          })}
+        </div>
       </Card>
 
       <Card style={{ borderColor:T.red + "44" }}>
@@ -1855,6 +2022,26 @@ function FutureModules() {
   );
 }
 
+
+// ---- COMING SOON STUB -------------------------------------------------------
+function ComingSoon(props) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:400 }}>
+      <Card style={{ maxWidth:480, width:"100%", textAlign:"center", padding:48 }}>
+        <div style={{ width:60, height:60, borderRadius:"50%", background:T.purple+"22", border:"2px solid "+T.purple+"66", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+          <Ic d={IC.rocket} size={28} color={T.purple} />
+        </div>
+        <Badge label="COMING SOON" color={T.purple} />
+        <div style={{ fontSize:18, fontWeight:800, color:T.text, marginTop:14, marginBottom:10 }}>{props.title}</div>
+        <div style={{ fontSize:13, color:T.mid, lineHeight:1.7, marginBottom:20 }}>{props.desc}</div>
+        <div style={{ padding:"10px 16px", background:T.purple+"11", border:"1px solid "+T.purple+"33", borderRadius:8, fontSize:12, color:T.purple }}>
+          This module is planned for a future development phase. It is not included in the current UAT demo scope.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 var NAV = [
   { id:"dashboard",  label:"Dashboard",    icon:"dashboard" },
   { id:"weighIn",    label:"Weigh In",     icon:"weighIn"   },
@@ -1866,16 +2053,19 @@ var NAV = [
   { id:"drivers",    label:"Drivers",      icon:"driver"    },
   { id:"settings",   label:"Settings",     icon:"settings"  },
   { id:"payroll",    label:"AI Payroll",   icon:"payroll"   },
+  { id:"settlement", label:"Settlement",    icon:"invoice"  },
+  { id:"statement",  label:"Statement",     icon:"records"   },
   { id:"future",     label:"Future Modules",icon:"rocket"  },
 ];
 
 // ---- MAIN APP ---------------------------------------------------------------
 export default function PalmWeighPro() {
-  var [txs,      setTxs]      = useLS("pw4_txs",      TX0);
-  var [drivers,  setDrivers]  = useLS("pw4_drivers",  DRIVERS0);
-  var [vehicles, setVehicles] = useLS("pw4_vehicles", VEHICLES0);
-  var [suppliers,setSuppliers]= useLS("pw4_suppliers",SUPPLIERS0);
-  var [counters, setCounters] = useLS("pw4_counters", COUNTERS0);
+  var [txs,       setTxs]       = useLS("pw4_txs",       TX0);
+  var [drivers,   setDrivers]   = useLS("pw4_drivers",   DRIVERS0);
+  var [vehicles,  setVehicles]  = useLS("pw4_vehicles",  VEHICLES0);
+  var [suppliers, setSuppliers] = useLS("pw4_suppliers", SUPPLIERS0);
+  var [harvesters,setHarvesters]= useLS("pw4_harvesters",HARVESTERS0);
+  var [counters,  setCounters]  = useLS("pw4_counters",  COUNTERS0);
   var [users]                 = useLS("pw4_users",    USERS0);
   var [currentUser, setCurrentUser] = useState(null);
   var [page,     setPage]     = useState("dashboard");
@@ -2013,9 +2203,13 @@ export default function PalmWeighPro() {
               <Dashboard txs={txs} station={station} />
             )}
             {page === "weighIn" && (
-              <WeighIn txs={txs} setTxs={setTxs} drivers={drivers} vehicles={vehicles}
-                suppliers={suppliers} stationId={station} counters={counters}
+              <WeighIn txs={txs} setTxs={setTxs} drivers={drivers} setDrivers={setDrivers}
+                vehicles={vehicles} setVehicles={setVehicles}
+                suppliers={suppliers} setSuppliers={setSuppliers}
+                harvesters={harvesters} setHarvesters={setHarvesters}
+                stationId={station} counters={counters}
                 setCounters={setCounters} stations={STATIONS}
+                currentUser={currentUser}
                 onGoWeighOut={function() { setPage("weighOut"); }}
                 onGoQueue={function() { setPage("queue"); }} />
             )}
@@ -2040,6 +2234,12 @@ export default function PalmWeighPro() {
             {page === "payroll" && (
               <AIPayroll />
             )}
+            {page === "settlement" && (
+              <ComingSoon title="Supplier Settlement" desc="Record and manage monthly settlement with registered suppliers. View outstanding balances and generate settlement reports." />
+            )}
+            {page === "statement" && (
+              <ComingSoon title="Statement of Account" desc="Generate and send statements of account to suppliers. View transaction history by supplier and date range." />
+            )}
             {page === "future" && (
               <FutureModules />
             )}
@@ -2047,6 +2247,7 @@ export default function PalmWeighPro() {
               <AppSettings
                 setTxs={setTxs} setDrivers={setDrivers} setVehicles={setVehicles}
                 setSuppliers={setSuppliers} setCounters={setCounters}
+                setHarvesters={setHarvesters}
                 users={users} currentUser={currentUser}
               />
             )}
