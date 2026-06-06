@@ -1938,7 +1938,7 @@ function FutureModules() {
     },
     {
       phase: "Phase 3",
-      color: T.purple,
+      color: T.purple, 
       label: "Planned",
       items: [
         { name:"Payroll Management",        desc:"Full worker attendance, salary calculation, and payslip generation module." },
