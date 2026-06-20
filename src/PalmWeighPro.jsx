@@ -32,6 +32,18 @@ const COMPANY = "Johor Palm Resources Sdn Bhd";
 
 const PRODUCTS = ["FFB", "EFB", "Shell", "Fiber", "Others"];
 
+const AUDIT_REASONS = [
+  "Wrong vehicle number entered",
+  "Wrong supplier selected",
+  "DN No. missing",
+  "Manual weight correction",
+  "Product selected wrongly",
+  "Harvester correction",
+  "Driver correction",
+  "Backdated entry",
+  "Other",
+];
+
 const HARVESTERS0 = [
   { id: "h1", name: "Zulkifli bin Hassan", active: true },
   { id: "h2", name: "Muthu a/l Rajan", active: true },
@@ -247,7 +259,7 @@ function makeTx(i) {
     plate: veh.plate,
     vehicleType: veh.type,
     product: PRODUCTS[i % 5],
-    harvester: txType === "PC" ? "" : "",
+    harvesters: [], // empty for seed; real tickets will have array
     dnNo: "",
     grossKg: gross,
     tareKg: tare,
@@ -1614,7 +1626,7 @@ function WeighIn(props) {
   var [vehicleId, setVehicleId] = useState("");
   var [supplierId, setSupplierId] = useState("");
   var [driverId, setDriverId] = useState("");
-  var [harvester, setHarvester] = useState("");
+  var [harvesters2, setHarvesters2] = useState([]); // selected harvesters array
   var [product, setProduct] = useState(PRODUCTS[0]);
   var [dnNo, setDnNo] = useState("");
   var [remarks, setRemarks] = useState("");
@@ -1685,7 +1697,7 @@ function WeighIn(props) {
     setVehicleId("");
     setSupplierId("");
     setDriverId("");
-    setHarvester("");
+    setHarvesters2([]);
     setProduct(PRODUCTS[0]);
     setDnNo("");
     setRemarks("");
@@ -1741,7 +1753,7 @@ function WeighIn(props) {
       vehicleId: veh.id,
       plate: veh.plate,
       vehicleType: veh.type,
-      harvester: isPurch ? harvester : "",
+      harvesters: isPurch ? harvesters2.slice() : [],
       product: product,
       dnNo: dnNo,
       grossKg: grossKg,
@@ -1832,7 +1844,9 @@ function WeighIn(props) {
     setHarvesters(function (prev) {
       return prev.concat([nh]);
     });
-    setHarvester(f.name.trim());
+    setHarvesters2(function (prev) {
+      return prev.includes(f.name.trim()) ? prev : prev.concat([f.name.trim()]);
+    });
   }
 
   var MODALS = {
@@ -2651,22 +2665,110 @@ function WeighIn(props) {
                   + Create New
                 </button>
               </div>
-              <select
-                value={harvester}
-                onChange={function (e) {
-                  setHarvester(e.target.value);
+              <div
+                style={{
+                  border: "1px solid " + T.border,
+                  borderRadius: 8,
+                  background: T.bg,
+                  padding: "6px 8px",
+                  minHeight: 42,
                 }}
-                style={Object.assign({}, IS)}
               >
-                <option value="">-- Select or skip --</option>
-                {harvesterOptions.map(function (o) {
-                  return (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  );
-                })}
-              </select>
+                {harvesters2.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 4,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {harvesters2.map(function (h) {
+                      return (
+                        <span
+                          key={h}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            background: T.accent + "22",
+                            border: "1px solid " + T.accent + "44",
+                            borderRadius: 5,
+                            padding: "2px 8px",
+                            fontSize: 11,
+                            color: T.accent,
+                            fontFamily: "IBM Plex Mono,monospace",
+                          }}
+                        >
+                          {h}
+                          <button
+                            onClick={function () {
+                              setHarvesters2(function (prev) {
+                                return prev.filter(function (x) {
+                                  return x !== h;
+                                });
+                              });
+                            }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: T.accent,
+                              fontSize: 13,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            x
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <select
+                  value=""
+                  onChange={function (e) {
+                    var v = e.target.value;
+                    if (v && !harvesters2.includes(v)) {
+                      setHarvesters2(function (prev) {
+                        return prev.concat([v]);
+                      });
+                    }
+                  }}
+                  style={Object.assign({}, IS, {
+                    border: "none",
+                    padding: "2px 4px",
+                    background: "transparent",
+                    fontSize: 12,
+                  })}
+                >
+                  <option value="">
+                    {"-- Add harvester" +
+                      (harvesters2.length > 0
+                        ? " (can select multiple)"
+                        : " or skip --")}
+                  </option>
+                  {harvesterOptions
+                    .filter(function (o) {
+                      return !harvesters2.includes(o.value);
+                    })
+                    .map(function (o) {
+                      return (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+              {harvesters2.length > 0 && (
+                <div style={{ fontSize: 10, color: T.dim, marginTop: 3 }}>
+                  {harvesters2.length} harvester
+                  {harvesters2.length > 1 ? "s" : ""} selected:{" "}
+                  {harvesters2.join(", ")}
+                </div>
+              )}
             </div>
           )}
 
@@ -2779,11 +2881,678 @@ function WeighIn(props) {
   );
 }
 
+// ---- EDIT TICKET MODAL -------------------------------------------------------
+function EditTicketModal(props) {
+  var tx = props.tx;
+  var onClose = props.onClose;
+  var onSave = props.onSave;
+  var isAdmin = props.isAdmin;
+  var suppliers = props.suppliers || [];
+  var vehicles = props.vehicles || [];
+  var drivers = props.drivers || [];
+  var harvesters = props.harvesters || [];
+
+  var isPending = tx.status === "pending_out";
+  var isPurch = tx.txType !== "DC";
+
+  // Editable fields - pre-fill from ticket
+  var [supplierId, setSupplierId] = useState(tx.supplierId || "");
+  var [vehicleId, setVehicleId] = useState(tx.vehicleId || "");
+  var [driverId, setDriverId] = useState(tx.driverId || "");
+  var [selHarvesters, setSelHarvesters] = useState(
+    Array.isArray(tx.harvesters) ? tx.harvesters.slice() : [],
+  );
+  var [product, setProduct] = useState(tx.product || PRODUCTS[0]);
+  var [dnNo, setDnNo] = useState(tx.dnNo || "");
+  var [remarks, setRemarks] = useState(tx.remarks || "");
+  var [reason, setReason] = useState(AUDIT_REASONS[0]);
+  var [customReason, setCustomReason] = useState("");
+  var [confirmWarn, setConfirmWarn] = useState(false);
+
+  // Weight edits - admin only
+  var [grossKgEdit, setGrossKgEdit] = useState(String(tx.grossKg || ""));
+  var [tareKgEdit, setTareKgEdit] = useState(String(tx.tareKg || ""));
+
+  var supplierOptions = suppliers
+    .filter(function (s) {
+      return s.active;
+    })
+    .map(function (s) {
+      return { value: s.id, label: s.name };
+    });
+  var vehicleOptions = vehicles
+    .filter(function (v) {
+      return v.active;
+    })
+    .map(function (v) {
+      return { value: v.id, label: v.plate };
+    });
+  var driverOptions = drivers
+    .filter(function (d) {
+      return d.active;
+    })
+    .map(function (d) {
+      return { value: d.id, label: d.name };
+    });
+  var harvesterOptions = harvesters
+    .filter(function (h) {
+      return h.active;
+    })
+    .map(function (h) {
+      return { value: h.name, label: h.name };
+    });
+  var productOptions = PRODUCTS.map(function (p) {
+    return { value: p, label: p };
+  });
+  var reasonOptions = AUDIT_REASONS.map(function (r) {
+    return { value: r, label: r };
+  });
+
+  function toggleHarvester(name) {
+    setSelHarvesters(function (prev) {
+      return prev.includes(name)
+        ? prev.filter(function (x) {
+            return x !== name;
+          })
+        : prev.concat([name]);
+    });
+  }
+
+  function handleSave() {
+    var finalReason = reason === "Other" ? customReason.trim() : reason;
+    if (!finalReason) {
+      alert("Please enter a modification reason.");
+      return;
+    }
+    if (!isPending && !isAdmin) {
+      alert("Only Admin can edit completed tickets.");
+      return;
+    }
+
+    // Build changes object - compare to original
+    var selVeh = vehicles.find(function (v) {
+      return v.id === vehicleId;
+    });
+    var selSup = suppliers.find(function (s) {
+      return s.id === supplierId;
+    });
+    var selDrv = drivers.find(function (d) {
+      return d.id === driverId;
+    });
+
+    var changes = {};
+    if (selSup && selSup.name !== tx.supplierName) {
+      changes.supplierName = { old: tx.supplierName, new: selSup.name };
+      changes.supplierId = { old: tx.supplierId, new: supplierId };
+    }
+    if (selVeh && selVeh.plate !== tx.plate) {
+      changes.plate = { old: tx.plate, new: selVeh.plate };
+      changes.vehicleId = { old: tx.vehicleId, new: vehicleId };
+    }
+    if (selDrv && selDrv.name !== tx.driverName) {
+      changes.driverName = { old: tx.driverName, new: selDrv.name };
+    }
+    if (product !== tx.product) {
+      changes.product = { old: tx.product, new: product };
+    }
+    if (dnNo !== (tx.dnNo || "")) {
+      changes.dnNo = { old: tx.dnNo || "", new: dnNo };
+    }
+    if (remarks !== (tx.remarks || "")) {
+      changes.remarks = { old: tx.remarks || "", new: remarks };
+    }
+    var hvOld = Array.isArray(tx.harvesters) ? tx.harvesters.join(", ") : "";
+    var hvNew = selHarvesters.join(", ");
+    if (hvOld !== hvNew) {
+      changes.harvesters = { old: hvOld || "--", new: hvNew || "--" };
+    }
+    if (isAdmin && grossKgEdit && parseFloat(grossKgEdit) !== tx.grossKg) {
+      changes.grossKg = { old: String(tx.grossKg), new: grossKgEdit };
+    }
+    if (
+      isAdmin &&
+      !isPending &&
+      tareKgEdit &&
+      parseFloat(tareKgEdit) !== tx.tareKg
+    ) {
+      changes.tareKg = { old: String(tx.tareKg), new: tareKgEdit };
+    }
+
+    if (Object.keys(changes).length === 0) {
+      alert("No changes detected.");
+      return;
+    }
+
+    onSave(
+      {
+        supplierId: selSup ? supplierId : tx.supplierId,
+        supplierName: selSup ? selSup.name : tx.supplierName,
+        supplierCode: selSup ? selSup.code : tx.supplierCode,
+        vehicleId: selVeh ? vehicleId : tx.vehicleId,
+        plate: selVeh ? selVeh.plate : tx.plate,
+        vehicleType: selVeh ? selVeh.type : tx.vehicleType,
+        driverId: selDrv ? driverId : tx.driverId,
+        driverName: selDrv ? selDrv.name : tx.driverName,
+        harvesters: selHarvesters,
+        product: product,
+        dnNo: dnNo,
+        remarks: remarks,
+        grossKg: isAdmin && grossKgEdit ? parseFloat(grossKgEdit) : tx.grossKg,
+        tareKg:
+          isAdmin && !isPending && tareKgEdit
+            ? parseFloat(tareKgEdit)
+            : tx.tareKg,
+        netKg: (function () {
+          var g = isAdmin && grossKgEdit ? parseFloat(grossKgEdit) : tx.grossKg;
+          var t2 =
+            isAdmin && !isPending && tareKgEdit
+              ? parseFloat(tareKgEdit)
+              : tx.tareKg;
+          return g && t2 ? g - t2 : tx.netKg;
+        })(),
+      },
+      changes,
+      finalReason,
+    );
+  }
+
+  var hasWeightChange =
+    isAdmin &&
+    ((grossKgEdit && parseFloat(grossKgEdit) !== tx.grossKg) ||
+      (!isPending && tareKgEdit && parseFloat(tareKgEdit) !== tx.tareKg));
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.78)",
+        zIndex: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          background: T.card,
+          border: "1px solid " + T.border,
+          borderRadius: 12,
+          width: "100%",
+          maxWidth: 540,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 18,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent }}>
+              Edit Ticket -- {tx.id}
+            </div>
+            <div style={{ fontSize: 11, color: T.dim, marginTop: 2 }}>
+              {isPending ? "Pending Ticket" : "Completed Ticket"}
+              {!isPending && !isAdmin && (
+                <span style={{ color: T.red, marginLeft: 8 }}>
+                  Admin permission required
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer" }}
+          >
+            <Ic d={IC.x} size={20} color={T.mid} />
+          </button>
+        </div>
+
+        {!isPending && !isAdmin ? (
+          <div style={{ padding: "20px", textAlign: "center", color: T.dim }}>
+            <Ic d={IC.lock} size={40} color={T.red} />
+            <div style={{ marginTop: 10, color: T.red, fontWeight: 700 }}>
+              Admin Permission Required
+            </div>
+            <div style={{ marginTop: 6, fontSize: 12 }}>
+              Only Admin or Manager can edit completed tickets.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <FInput
+              label="Supplier / Customer"
+              value={supplierId}
+              onChange={setSupplierId}
+              options={supplierOptions}
+            />
+            <FInput
+              label="Vehicle"
+              value={vehicleId}
+              onChange={setVehicleId}
+              options={vehicleOptions}
+            />
+            <FInput
+              label="Driver"
+              value={driverId}
+              onChange={setDriverId}
+              options={driverOptions}
+            />
+
+            {isPurch && (
+              <div>
+                <label
+                  style={{
+                    fontSize: 11,
+                    color: T.mid,
+                    fontWeight: 600,
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                    display: "block",
+                    marginBottom: 6,
+                  }}
+                >
+                  Harvester(s)
+                </label>
+                <div
+                  style={{
+                    border: "1px solid " + T.border,
+                    borderRadius: 8,
+                    background: T.bg,
+                    padding: "6px 8px",
+                  }}
+                >
+                  {selHarvesters.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 4,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {selHarvesters.map(function (h) {
+                        return (
+                          <span
+                            key={h}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: T.accent + "22",
+                              border: "1px solid " + T.accent + "44",
+                              borderRadius: 5,
+                              padding: "2px 8px",
+                              fontSize: 11,
+                              color: T.accent,
+                              fontFamily: "IBM Plex Mono,monospace",
+                            }}
+                          >
+                            {h}
+                            <button
+                              onClick={function () {
+                                toggleHarvester(h);
+                              }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: T.accent,
+                                fontSize: 13,
+                                lineHeight: 1,
+                                padding: 0,
+                              }}
+                            >
+                              x
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <select
+                    value=""
+                    onChange={function (e) {
+                      if (e.target.value) toggleHarvester(e.target.value);
+                    }}
+                    style={Object.assign({}, IS, {
+                      border: "none",
+                      padding: "2px 4px",
+                      background: "transparent",
+                      fontSize: 12,
+                    })}
+                  >
+                    <option value="">-- Add harvester --</option>
+                    {harvesterOptions
+                      .filter(function (o) {
+                        return !selHarvesters.includes(o.value);
+                      })
+                      .map(function (o) {
+                        return (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <FInput
+              label="Product"
+              value={product}
+              onChange={setProduct}
+              options={productOptions}
+            />
+            <FInput
+              label="DN No."
+              value={dnNo}
+              onChange={setDnNo}
+              placeholder="Optional"
+            />
+            <FInput
+              label="Remarks"
+              value={remarks}
+              onChange={setRemarks}
+              placeholder="Optional"
+            />
+
+            {isAdmin && (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  background: T.amber + "11",
+                  border: "1px solid " + T.amber + "33",
+                  borderRadius: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.amber,
+                    fontWeight: 700,
+                    marginBottom: 8,
+                  }}
+                >
+                  Admin: Weight Fields
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                  }}
+                >
+                  <FInput
+                    label="Gross Weight (kg)"
+                    value={grossKgEdit}
+                    onChange={setGrossKgEdit}
+                    type="number"
+                  />
+                  {!isPending && (
+                    <FInput
+                      label="Tare Weight (kg)"
+                      value={tareKgEdit}
+                      onChange={setTareKgEdit}
+                      type="number"
+                    />
+                  )}
+                </div>
+                {hasWeightChange && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: T.red }}>
+                    Warning: Changing weights will affect net calculation and
+                    may impact payment records.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              style={{
+                borderTop: "1px solid " + T.border,
+                paddingTop: 12,
+                marginTop: 4,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.mid,
+                  fontWeight: 700,
+                  marginBottom: 6,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                }}
+              >
+                Modification Reason *
+              </div>
+              <FInput
+                label=""
+                value={reason}
+                onChange={setReason}
+                options={reasonOptions}
+              />
+              {reason === "Other" && (
+                <FInput
+                  label="Specify reason"
+                  value={customReason}
+                  onChange={setCustomReason}
+                  placeholder="Enter reason..."
+                  style={{ marginTop: 8 }}
+                />
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <Btn label="Save Changes" icon="check" onClick={handleSave} />
+              <Btn label="Cancel" icon="x" onClick={onClose} variant="ghost" />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- AUDIT HISTORY MODAL -----------------------------------------------------
+function AuditHistoryModal(props) {
+  var tx = props.tx,
+    auditLog = props.auditLog,
+    onClose = props.onClose;
+  var entries = auditLog
+    .filter(function (a) {
+      return a.ticketId === tx.id;
+    })
+    .sort(function (a, b) {
+      return new Date(b.ts) - new Date(a, ts);
+    });
+  // sort fix
+  var sorted = auditLog
+    .filter(function (a) {
+      return a.ticketId === tx.id;
+    })
+    .slice()
+    .sort(function (a, b) {
+      return new Date(b.ts) - new Date(a.ts);
+    });
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.78)",
+        zIndex: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          background: T.card,
+          border: "1px solid " + T.border,
+          borderRadius: 12,
+          width: "100%",
+          maxWidth: 700,
+          maxHeight: "85vh",
+          overflowY: "auto",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent }}>
+              Modification History -- {tx.id}
+            </div>
+            <div style={{ fontSize: 11, color: T.dim, marginTop: 2 }}>
+              {sorted.length} modification{sorted.length !== 1 ? "s" : ""}{" "}
+              recorded
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer" }}
+          >
+            <Ic d={IC.x} size={20} color={T.mid} />
+          </button>
+        </div>
+        {sorted.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 32, color: T.dim }}>
+            No modifications recorded for this ticket.
+          </div>
+        ) : (
+          sorted.map(function (entry, ei) {
+            return (
+              <div
+                key={ei}
+                style={{
+                  marginBottom: 14,
+                  padding: "12px 14px",
+                  background: T.bg,
+                  borderRadius: 8,
+                  borderLeft: "3px solid " + T.blue,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 8,
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{ fontSize: 11, fontWeight: 700, color: T.text }}
+                    >
+                      {entry.modifiedBy}
+                    </span>
+                    <span
+                      style={{ fontSize: 11, color: T.dim, marginLeft: 10 }}
+                    >
+                      {fmtD(entry.ts)}
+                    </span>
+                  </div>
+                  <Badge
+                    label={
+                      entry.ticketStatus === "completed"
+                        ? "Completed"
+                        : "Pending"
+                    }
+                    color={
+                      entry.ticketStatus === "completed" ? T.accent : T.amber
+                    }
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: T.amber, marginBottom: 6 }}>
+                  Reason: {entry.reason}
+                </div>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
+                  {entry.changes.map(function (ch, ci) {
+                    return (
+                      <div
+                        key={ci}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "140px 1fr 1fr",
+                          gap: 8,
+                          fontSize: 11,
+                          padding: "4px 0",
+                          borderBottom: "1px solid " + T.border + "44",
+                        }}
+                      >
+                        <span style={{ color: T.mid, fontWeight: 600 }}>
+                          {ch.field}
+                        </span>
+                        <span
+                          style={{
+                            color: T.red,
+                            fontFamily: "IBM Plex Mono,monospace",
+                          }}
+                        >
+                          - {ch.oldVal}
+                        </span>
+                        <span
+                          style={{
+                            color: T.accent,
+                            fontFamily: "IBM Plex Mono,monospace",
+                          }}
+                        >
+                          + {ch.newVal}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10, color: T.dim, marginTop: 6 }}>
+                  Branch: {entry.branch}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---- PENDING QUEUE ----------------------------------------------------------
 function PendingQueue(props) {
   var txs = props.txs,
+    setTxs = props.setTxs,
     stationId = props.stationId,
     onWeighOut = props.onWeighOut;
+  var suppliers = props.suppliers || [],
+    vehicles = props.vehicles || [],
+    drivers = props.drivers || [],
+    harvesters = props.harvesters || [];
+  var auditLog = props.auditLog || [],
+    setAuditLog = props.setAuditLog,
+    currentUser = props.currentUser;
+  var isAdmin =
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "supervisor");
+
+  var [editTx, setEditTx] = useState(null);
   var pending = txs.filter(function (t) {
     return (
       t.status === "pending_out" && (!stationId || t.stationId === stationId)
@@ -2797,8 +3566,66 @@ function PendingQueue(props) {
       )
     : 0;
 
+  function handleSaveEdit(txId, updates, changes, reason) {
+    var who = (currentUser && currentUser.name) || "Operator";
+    var now = new Date().toISOString();
+    var origTx = txs.find(function (t) {
+      return t.id === txId;
+    });
+    // Build change list for audit
+    var changeList = Object.keys(changes)
+      .filter(function (k) {
+        return !k.endsWith("Id") && !k.endsWith("Code");
+      })
+      .map(function (k) {
+        return { field: k, oldVal: changes[k].old, newVal: changes[k].new };
+      });
+    var auditEntry = {
+      id: "AL_" + Date.now(),
+      ticketId: txId,
+      modifiedBy: who,
+      ts: now,
+      ticketStatus: origTx ? origTx.status : "pending_out",
+      branch: origTx ? origTx.stationPrefix : "",
+      reason: reason,
+      changes: changeList,
+    };
+    setTxs(function (prev) {
+      return prev.map(function (t) {
+        return t.id === txId
+          ? Object.assign({}, t, updates, {
+              modifiedAt: now,
+              modifiedBy: who,
+              isModified: true,
+            })
+          : t;
+      });
+    });
+    if (setAuditLog)
+      setAuditLog(function (prev) {
+        return [auditEntry].concat(prev);
+      });
+    setEditTx(null);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {editTx && (
+        <EditTicketModal
+          tx={editTx}
+          isAdmin={isAdmin}
+          onClose={function () {
+            setEditTx(null);
+          }}
+          onSave={function (updates, changes, reason) {
+            handleSaveEdit(editTx.id, updates, changes, reason);
+          }}
+          suppliers={suppliers}
+          vehicles={vehicles}
+          drivers={drivers}
+          harvesters={harvesters}
+        />
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <StatCard
           label="Pending Vehicles"
@@ -2862,6 +3689,9 @@ function PendingQueue(props) {
                         label={tx.txType === "DC" ? "Delivery" : "Purchase"}
                         color={tx.txType === "DC" ? T.purple : T.accent}
                       />
+                      {tx.isModified && (
+                        <Badge label="Modified" color={T.amber} />
+                      )}
                     </div>
                     <div
                       style={{
@@ -2883,6 +3713,12 @@ function PendingQueue(props) {
                     </div>
                     <div style={{ fontSize: 11, color: T.dim, marginTop: 1 }}>
                       Driver: {tx.driverName}
+                      {Array.isArray(tx.harvesters) &&
+                        tx.harvesters.length > 0 && (
+                          <span style={{ marginLeft: 10 }}>
+                            | Harvesters: {tx.harvesters.join(", ")}
+                          </span>
+                        )}
                     </div>
                     <div style={{ fontSize: 11, color: T.dim, marginTop: 2 }}>
                       In: {fmtD(tx.weightIn)} | First Weight: {fmt(tx.grossKg)}{" "}
@@ -2906,6 +3742,15 @@ function PendingQueue(props) {
                       }}
                       small={true}
                       variant="amber"
+                    />
+                    <Btn
+                      label="Edit"
+                      icon="edit"
+                      onClick={function () {
+                        setEditTx(tx);
+                      }}
+                      small={true}
+                      variant="ghost"
                     />
                   </div>
                 </div>
@@ -3291,16 +4136,115 @@ function WeighOut(props) {
 // ---- TICKET RECORDS ---------------------------------------------------------
 function TicketRecords(props) {
   var txs = props.txs,
+    setTxs = props.setTxs,
     stationId = props.stationId,
     onPrint = props.onPrint;
+  var suppliers = props.suppliers || [],
+    vehicles = props.vehicles || [],
+    drivers = props.drivers || [],
+    harvesters = props.harvesters || [];
+  var auditLog = props.auditLog || [],
+    setAuditLog = props.setAuditLog,
+    currentUser = props.currentUser;
+  var isAdmin =
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "supervisor");
+
   var [search, setSearch] = useState("");
   var [filter, setFilter] = useState("all");
   var [viewTx, setViewTx] = useState(null);
+  var [editTx, setEditTx] = useState(null);
+  var [histTx, setHistTx] = useState(null);
 
+  function handleSaveEdit(txId, updates, changes, reason) {
+    var who = (currentUser && currentUser.name) || "Operator";
+    var now = new Date().toISOString();
+    var origTx = txs.find(function (t) {
+      return t.id === txId;
+    });
+    var changeList = Object.keys(changes)
+      .filter(function (k) {
+        return !k.endsWith("Id") && !k.endsWith("Code");
+      })
+      .map(function (k) {
+        return { field: k, oldVal: changes[k].old, newVal: changes[k].new };
+      });
+    var auditEntry = {
+      id: "AL_" + Date.now(),
+      ticketId: txId,
+      modifiedBy: who,
+      ts: now,
+      ticketStatus: origTx ? origTx.status : "completed",
+      branch: origTx ? origTx.stationPrefix : "",
+      reason: reason,
+      changes: changeList,
+    };
+    setTxs(function (prev) {
+      return prev.map(function (t) {
+        return t.id === txId
+          ? Object.assign({}, t, updates, {
+              modifiedAt: now,
+              modifiedBy: who,
+              isModified: true,
+            })
+          : t;
+      });
+    });
+    if (setAuditLog)
+      setAuditLog(function (prev) {
+        return [auditEntry].concat(prev);
+      });
+    if (viewTx && viewTx.id === txId)
+      setViewTx(
+        Object.assign({}, viewTx, updates, {
+          modifiedAt: now,
+          modifiedBy: who,
+          isModified: true,
+        }),
+      );
+    setEditTx(null);
+  }
+
+  // Detail view
   if (viewTx) {
+    var histCount = auditLog.filter(function (a) {
+      return a.ticketId === viewTx.id;
+    }).length;
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {editTx && (
+          <EditTicketModal
+            tx={editTx}
+            isAdmin={isAdmin}
+            onClose={function () {
+              setEditTx(null);
+            }}
+            onSave={function (updates, changes, reason) {
+              handleSaveEdit(editTx.id, updates, changes, reason);
+            }}
+            suppliers={suppliers}
+            vehicles={vehicles}
+            drivers={drivers}
+            harvesters={harvesters}
+          />
+        )}
+        {histTx && (
+          <AuditHistoryModal
+            tx={histTx}
+            auditLog={auditLog}
+            onClose={function () {
+              setHistTx(null);
+            }}
+          />
+        )}
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <Btn
             label="Back to Records"
             icon="records"
@@ -3318,17 +4262,47 @@ function TicketRecords(props) {
             }}
             small={true}
           />
+          <Btn
+            label="Edit Ticket"
+            icon="edit"
+            onClick={function () {
+              setEditTx(viewTx);
+            }}
+            small={true}
+            variant="amber"
+            disabled={viewTx.status === "completed" && !isAdmin}
+          />
+          {isAdmin && (
+            <Btn
+              label={"History" + (histCount > 0 ? " (" + histCount + ")" : "")}
+              icon="refresh"
+              onClick={function () {
+                setHistTx(viewTx);
+              }}
+              small={true}
+              variant="ghost"
+            />
+          )}
         </div>
         <Card>
           <div
             style={{
-              fontSize: 13,
-              color: T.accent,
-              fontWeight: 700,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               marginBottom: 16,
             }}
           >
-            TICKET -- {viewTx.id}
+            <div style={{ fontSize: 13, color: T.accent, fontWeight: 700 }}>
+              TICKET -- {viewTx.id}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {viewTx.isModified && <Badge label="Modified" color={T.amber} />}
+              <Badge
+                label={viewTx.txType === "DC" ? "Delivery" : "Purchase"}
+                color={viewTx.txType === "DC" ? T.purple : T.accent}
+              />
+            </div>
           </div>
           <div
             style={{
@@ -3348,7 +4322,7 @@ function TicketRecords(props) {
                 ],
                 ["Ticket Source", viewTx.ticketSource || "SCALE"],
                 ["Ticket Type", viewTx.ticketType || "Normal Invoice"],
-                ["Product", viewTx.product || "Fresh Fruit Bunch (FFB)"],
+                ["Product", viewTx.product || "FFB"],
                 [
                   "Status",
                   viewTx.status === "completed" ? "Completed" : "Pending",
@@ -3379,7 +4353,13 @@ function TicketRecords(props) {
                 ["Supplier / Customer", viewTx.supplierName],
                 ["Vehicle", viewTx.plate],
                 ["Driver", viewTx.driverName],
-                ["Harvester", viewTx.harvester || "--"],
+                [
+                  "Harvester(s)",
+                  Array.isArray(viewTx.harvesters) &&
+                  viewTx.harvesters.length > 0
+                    ? viewTx.harvesters.join(", ")
+                    : viewTx.harvester || "--",
+                ],
                 ["DN No.", viewTx.dnNo || "--"],
                 ["Created By", viewTx.createdBy || "operator"],
                 ["Created At", fmtD(viewTx.createdAt || viewTx.weightIn)],
@@ -3418,8 +4398,16 @@ function TicketRecords(props) {
           >
             {[
               ["Gross Weight", fmt(viewTx.grossKg) + " kg", T.blue],
-              ["Tare Weight", fmt(viewTx.tareKg) + " kg", T.amber],
-              ["Net Weight", fmt(viewTx.netKg) + " kg", T.accent],
+              [
+                "Tare Weight",
+                viewTx.tareKg != null ? fmt(viewTx.tareKg) + " kg" : "Pending",
+                T.amber,
+              ],
+              [
+                "Net Weight",
+                viewTx.netKg != null ? fmt(viewTx.netKg) + " kg" : "Pending",
+                T.accent,
+              ],
             ].map(function (p) {
               return (
                 <div key={p[0]} style={{ textAlign: "center" }}>
@@ -3441,29 +4429,45 @@ function TicketRecords(props) {
             })}
           </div>
           <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: 12,
+            }}
           >
             {[
               ["Date/Time In", fmtD(viewTx.weightIn)],
               ["Date/Time Out", fmtD(viewTx.weightOut)],
-              ["Operator", viewTx.operator],
-            ].map(function (p) {
-              return (
-                <div key={p[0]}>
-                  <div style={{ fontSize: 10, color: T.dim, marginBottom: 2 }}>
-                    {p[0]}
+              ["Operator", viewTx.operator || viewTx.createdBy || "--"],
+            ]
+              .concat(
+                viewTx.isModified
+                  ? [
+                      ["Last Modified By", viewTx.modifiedBy || "--"],
+                      ["Last Modified At", fmtD(viewTx.modifiedAt)],
+                    ]
+                  : [],
+              )
+              .map(function (p) {
+                return (
+                  <div key={p[0]}>
+                    <div
+                      style={{ fontSize: 10, color: T.dim, marginBottom: 2 }}
+                    >
+                      {p[0]}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "IBM Plex Mono,monospace",
+                        color: p[0].startsWith("Last") ? T.amber : T.text,
+                        fontSize: 12,
+                      }}
+                    >
+                      {p[1]}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "IBM Plex Mono,monospace",
-                      color: T.text,
-                    }}
-                  >
-                    {p[1]}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </Card>
       </div>
@@ -3488,7 +4492,7 @@ function TicketRecords(props) {
         t.id.toLowerCase().includes(q) ||
         t.plate.toLowerCase().includes(q) ||
         t.supplierName.toLowerCase().includes(q) ||
-        t.driverName.toLowerCase().includes(q)
+        (t.driverName || "").toLowerCase().includes(q)
       );
     })
     .sort(function (a, b) {
@@ -3498,6 +4502,31 @@ function TicketRecords(props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {editTx && (
+        <EditTicketModal
+          tx={editTx}
+          isAdmin={isAdmin}
+          onClose={function () {
+            setEditTx(null);
+          }}
+          onSave={function (updates, changes, reason) {
+            handleSaveEdit(editTx.id, updates, changes, reason);
+          }}
+          suppliers={suppliers}
+          vehicles={vehicles}
+          drivers={drivers}
+          harvesters={harvesters}
+        />
+      )}
+      {histTx && (
+        <AuditHistoryModal
+          tx={histTx}
+          auditLog={auditLog}
+          onClose={function () {
+            setHistTx(null);
+          }}
+        />
+      )}
       <div
         style={{
           display: "flex",
@@ -3526,7 +4555,7 @@ function TicketRecords(props) {
             style={Object.assign({}, IS, { paddingLeft: 30 })}
           />
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {[
             { id: "all", label: "All", color: T.accent },
             { id: "PC", label: "Purchase", color: T.accent },
@@ -3580,16 +4609,28 @@ function TicketRecords(props) {
                     >
                       {v}
                     </div>
-                    <Badge
-                      label={row.txType === "DC" ? "Delivery" : "Purchase"}
-                      color={row.txType === "DC" ? T.purple : T.accent}
-                    />
+                    <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                      <Badge
+                        label={row.txType === "DC" ? "Delivery" : "Purchase"}
+                        color={row.txType === "DC" ? T.purple : T.accent}
+                      />
+                      {row.isModified && (
+                        <Badge label="Modified" color={T.amber} />
+                      )}
+                    </div>
                   </div>
                 );
               },
             },
             { key: "supplierName", label: "Supplier / Customer" },
             { key: "plate", label: "Vehicle" },
+            {
+              key: "product",
+              label: "Product",
+              render: function (v) {
+                return v || "FFB";
+              },
+            },
             {
               key: "grossKg",
               label: "Gross (kg)",
@@ -3635,18 +4676,6 @@ function TicketRecords(props) {
               },
             },
             {
-              key: "ticketType",
-              label: "Type",
-              render: function (v) {
-                return (
-                  <Badge
-                    label={v === "Cash Bill" ? "Cash" : "Normal"}
-                    color={v === "Cash Bill" ? T.amber : T.blue}
-                  />
-                );
-              },
-            },
-            {
               key: "status",
               label: "Status",
               render: function (v) {
@@ -3656,25 +4685,6 @@ function TicketRecords(props) {
                     color={v === "completed" ? T.accent : T.amber}
                   />
                 );
-              },
-            },
-            {
-              key: "ticketSource",
-              label: "Source",
-              render: function (v) {
-                return (
-                  <Badge
-                    label={v || "SCALE"}
-                    color={v === "MANUAL" ? T.purple : T.blue}
-                  />
-                );
-              },
-            },
-            {
-              key: "weightIn",
-              label: "Time In",
-              render: function (v) {
-                return fmtD(v);
               },
             },
             {
@@ -3692,8 +4702,11 @@ function TicketRecords(props) {
               key: "id",
               label: "Actions",
               render: function (_, row) {
+                var hc = auditLog.filter(function (a) {
+                  return a.ticketId === row.id;
+                }).length;
                 return (
-                  <div style={{ display: "flex", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 4 }}>
                     <Btn
                       label="View"
                       icon="eye"
@@ -3704,6 +4717,16 @@ function TicketRecords(props) {
                       }}
                     />
                     <Btn
+                      label="Edit"
+                      icon="edit"
+                      small={true}
+                      variant="ghost"
+                      onClick={function () {
+                        setEditTx(row);
+                      }}
+                      disabled={row.status === "completed" && !isAdmin}
+                    />
+                    <Btn
                       label="Print"
                       icon="print"
                       small={true}
@@ -3712,6 +4735,17 @@ function TicketRecords(props) {
                         onPrint(row);
                       }}
                     />
+                    {isAdmin && (
+                      <Btn
+                        label={"Log" + (hc > 0 ? "(" + hc + ")" : "")}
+                        icon="records"
+                        small={true}
+                        variant="ghost"
+                        onClick={function () {
+                          setHistTx(row);
+                        }}
+                      />
+                    )}
                   </div>
                 );
               },
@@ -3723,7 +4757,6 @@ function TicketRecords(props) {
     </div>
   );
 }
-
 // ---- PRINT PREVIEW ----------------------------------------------------------
 function PrintPreview(props) {
   var tx = props.tx,
@@ -3781,6 +4814,23 @@ function PrintPreview(props) {
           <div style={{ fontSize: 10, color: "#666", marginTop: 2 }}>
             {sta.name} -- {sta.location}
           </div>
+          {tx.isModified && (
+            <div
+              style={{
+                marginTop: 4,
+                display: "inline-block",
+                background: "#fffbeb",
+                border: "1px solid #f59e0b",
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: 10,
+                color: "#f59e0b",
+                fontWeight: 700,
+              }}
+            >
+              MODIFIED TICKET
+            </div>
+          )}
         </div>
 
         <div
@@ -3864,10 +4914,16 @@ function PrintPreview(props) {
             </div>
             <div style={{ color: "#555" }}>Driver:</div>
             <div>{tx.driverName}</div>
-            {isPurch && tx.harvester ? (
+            {isPurch &&
+            ((Array.isArray(tx.harvesters) && tx.harvesters.length > 0) ||
+              tx.harvester) ? (
               <>
-                <div style={{ color: "#555" }}>Harvester:</div>
-                <div>{tx.harvester}</div>
+                <div style={{ color: "#555" }}>Harvester(s):</div>
+                <div>
+                  {Array.isArray(tx.harvesters) && tx.harvesters.length > 0
+                    ? tx.harvesters.join(", ")
+                    : tx.harvester}
+                </div>
               </>
             ) : null}
           </div>
@@ -4015,6 +5071,15 @@ function PrintPreview(props) {
         <div style={{ marginBottom: 10, fontSize: 11, color: "#555" }}>
           <span>Created By: {tx.createdBy || "operator"}</span>
           {"  |  "}
+          {tx.isModified && (
+            <span style={{ color: "#f59e0b" }}>
+              Modified: Yes (Last: {tx.modifiedBy} at{" "}
+              {tx.modifiedAt
+                ? new Date(tx.modifiedAt).toLocaleDateString("en-MY")
+                : "--"}
+              ){"  |  "}
+            </span>
+          )}
           <span>
             Printed:{" "}
             {new Date().toLocaleString("en-MY", {
@@ -4550,6 +5615,11 @@ function DriverMgmt(props) {
 
 // ---- SETTINGS ---------------------------------------------------------------
 function AppSettings(props) {
+  var auditLog = props.auditLog || [];
+  var isAdmin =
+    props.currentUser &&
+    (props.currentUser.role === "admin" ||
+      props.currentUser.role === "supervisor");
   var [conf, setConf] = useState(false);
   function doReset() {
     if (!conf) {
@@ -4562,6 +5632,7 @@ function AppSettings(props) {
     props.setSuppliers(SUPPLIERS0);
     props.setCounters(COUNTERS0);
     if (props.setHarvesters) props.setHarvesters(HARVESTERS0);
+    if (props.setAuditLog) props.setAuditLog([]);
     setConf(false);
     alert("Demo data has been reset to defaults.");
   }
@@ -4739,6 +5810,63 @@ function AppSettings(props) {
           })}
         </div>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <div
+            style={{
+              fontSize: 12,
+              color: T.accent,
+              fontWeight: 700,
+              marginBottom: 4,
+            }}
+          >
+            AUDIT LOG SUMMARY
+          </div>
+          <div style={{ fontSize: 11, color: T.dim, marginBottom: 10 }}>
+            {auditLog.length} modification record
+            {auditLog.length !== 1 ? "s" : ""} stored. Full history visible
+            per-ticket in Ticket Records.
+          </div>
+          {auditLog.slice(0, 5).map(function (entry, i) {
+            return (
+              <div
+                key={i}
+                style={{
+                  padding: "8px 10px",
+                  background: T.bg,
+                  borderRadius: 6,
+                  marginBottom: 6,
+                  fontSize: 11,
+                }}
+              >
+                <span
+                  style={{
+                    color: T.accent,
+                    fontFamily: "IBM Plex Mono,monospace",
+                  }}
+                >
+                  {entry.ticketId}
+                </span>
+                <span style={{ color: T.dim, marginLeft: 10 }}>
+                  {fmtD(entry.ts)}
+                </span>
+                <span style={{ color: T.text, marginLeft: 10 }}>
+                  by {entry.modifiedBy}
+                </span>
+                <span style={{ color: T.amber, marginLeft: 10 }}>
+                  {entry.reason}
+                </span>
+              </div>
+            );
+          })}
+          {auditLog.length === 0 && (
+            <div style={{ color: T.dim, fontSize: 11 }}>
+              No modifications recorded yet.
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card style={{ borderColor: T.red + "44" }}>
         <div
@@ -5849,6 +6977,7 @@ export default function PalmWeighPro() {
   var [suppliers, setSuppliers] = useLS("pw4_suppliers", SUPPLIERS0);
   var [harvesters, setHarvesters] = useLS("pw4_harvesters", HARVESTERS0);
   var [counters, setCounters] = useLS("pw4_counters", COUNTERS0);
+  var [auditLog, setAuditLog] = useLS("pw4_audit", []);
   var [users] = useLS("pw4_users", USERS0);
   var [currentUser, setCurrentUser] = useState(null);
   var [page, setPage] = useState("dashboard");
@@ -6214,8 +7343,16 @@ export default function PalmWeighPro() {
             {page === "queue" && (
               <PendingQueue
                 txs={txs}
+                setTxs={setTxs}
                 stationId={station}
                 onWeighOut={goWeighOut}
+                suppliers={suppliers}
+                vehicles={vehicles}
+                drivers={drivers}
+                harvesters={harvesters}
+                auditLog={auditLog}
+                setAuditLog={setAuditLog}
+                currentUser={currentUser}
               />
             )}
             {page === "weighOut" && (
@@ -6229,8 +7366,16 @@ export default function PalmWeighPro() {
             {page === "records" && (
               <TicketRecords
                 txs={txs}
+                setTxs={setTxs}
                 stationId={station}
                 onPrint={setPrintTx}
+                suppliers={suppliers}
+                vehicles={vehicles}
+                drivers={drivers}
+                harvesters={harvesters}
+                auditLog={auditLog}
+                setAuditLog={setAuditLog}
+                currentUser={currentUser}
               />
             )}
             {page === "suppliers" && (
@@ -6268,6 +7413,8 @@ export default function PalmWeighPro() {
                 setSuppliers={setSuppliers}
                 setCounters={setCounters}
                 setHarvesters={setHarvesters}
+                setAuditLog={setAuditLog}
+                auditLog={auditLog}
                 users={users}
                 currentUser={currentUser}
               />
