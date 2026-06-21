@@ -528,17 +528,19 @@ var IC = {
 };
 
 // ---- SHARED UI --------------------------------------------------------------
-var cardStyle = {
-  background: T.card,
-  border: "1px solid " + T.border,
-  borderRadius: 12,
-  padding: 20,
-  boxShadow: T.shadowCard || "none",
-};
+function getCardStyle() {
+  return {
+    background: T.card,
+    border: "1px solid " + T.border,
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: T.shadowCard || "none",
+  };
+}
 
 function Card(props) {
   return (
-    <div style={Object.assign({}, cardStyle, props.style || {})}>
+    <div style={Object.assign({}, getCardStyle(), props.style || {})}>
       {props.children}
     </div>
   );
