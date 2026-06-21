@@ -125,7 +125,7 @@ const DRIVERS0 = [
   {
     id: "d3",
     name: "Kumar Selvam",
-    ic: "790820-01-3003",
+    ic: "790120-01-3003",
     phone: "0197101003",
     rfid: "RF003",
     license: "GDL-003",
