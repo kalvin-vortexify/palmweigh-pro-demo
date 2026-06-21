@@ -1,3 +1,128 @@
+// ---- APPEARANCE MODES (light/dark backgrounds) ------------------------------
+var APPEARANCES = {
+  light: {
+    label: "Light Mode",
+    desc: "Clean white background for management use",
+    bg: "#f0f2f5",
+    surface: "#ffffff",
+    card: "#ffffff",
+    border: "#e2e8f0",
+    text: "#111827",
+    mid: "#6b7280",
+    dim: "#9ca3af",
+    inputBg: "#ffffff",
+    inputBorder: "#d1d5db",
+    terminalBg: "#e8edf2",
+    terminalCard: "#d8e0ea",
+    terminalLED: "#1e293b",
+    shadowCard: "0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)",
+  },
+  dark: {
+    label: "Dark Mode",
+    desc: "Dark navy background for weighbridge operators",
+    bg: "#0a0e1a",
+    surface: "#111827",
+    card: "#161d2e",
+    border: "#1e2a3a",
+    text: "#e2e8f0",
+    mid: "#94a3b8",
+    dim: "#475569",
+    inputBg: "#0a0e1a",
+    inputBorder: "#1e2a3a",
+    terminalBg: "#0a0f1a",
+    terminalCard: "#050a10",
+    terminalLED: "#050a10",
+    shadowCard: "none",
+  },
+  classic: {
+    label: "Classic Mode",
+    desc: "High contrast terminal feel for legacy operators",
+    bg: "#0d0d0d",
+    surface: "#1a1a1a",
+    card: "#1f1f1f",
+    border: "#333333",
+    text: "#ffffff",
+    mid: "#cccccc",
+    dim: "#777777",
+    inputBg: "#111111",
+    inputBorder: "#444444",
+    terminalBg: "#111111",
+    terminalCard: "#080808",
+    terminalLED: "#080808",
+    shadowCard: "none",
+  },
+  system: {
+    label: "System Default",
+    desc: "Follow your device light or dark preference",
+    bg: "#f0f2f5",
+    surface: "#ffffff",
+    card: "#ffffff",
+    border: "#e2e8f0",
+    text: "#111827",
+    mid: "#6b7280",
+    dim: "#9ca3af",
+    inputBg: "#ffffff",
+    inputBorder: "#d1d5db",
+    terminalBg: "#e8edf2",
+    terminalCard: "#d8e0ea",
+    terminalLED: "#1e293b",
+    shadowCard: "0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)",
+  },
+};
+
+// ---- ACCENT COLOURS (primary highlight colour only) -------------------------
+var ACCENTS = {
+  blue: { label: "Blue", hex: "#2563eb", hover: "#1d4ed8" },
+  green: { label: "Green", hex: "#16a34a", hover: "#15803d" },
+  purple: { label: "Purple", hex: "#7c3aed", hover: "#6d28d9" },
+  orange: { label: "Orange / Classic", hex: "#d97706", hover: "#b45309" },
+  teal: { label: "Teal", hex: "#0d9488", hover: "#0f766e" },
+};
+
+// ---- DERIVE FULL T FROM appearance + accent ---------------------------------
+function buildTheme(appearanceKey, accentKey) {
+  var sysPrefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var ap =
+    appearanceKey === "system"
+      ? sysPrefersDark
+        ? APPEARANCES["dark"]
+        : APPEARANCES["light"]
+      : APPEARANCES[appearanceKey] || APPEARANCES["dark"];
+  var ac = (ACCENTS[accentKey] || ACCENTS["blue"]).hex;
+  var isLight =
+    appearanceKey === "light" ||
+    (appearanceKey === "system" && !sysPrefersDark);
+  return {
+    bg: ap.bg,
+    surface: ap.surface,
+    card: ap.card,
+    border: ap.border,
+    text: ap.text,
+    mid: ap.mid,
+    dim: ap.dim,
+    inputBg: ap.inputBg,
+    inputBorder: ap.inputBorder,
+    terminalBg: ap.terminalBg,
+    terminalCard: ap.terminalCard,
+    terminalLED: ap.terminalLED,
+    shadowCard: ap.shadowCard,
+    tableHover: isLight
+      ? "#f3f6fa"
+      : ap.bg === "#0d0d0d"
+        ? "#252525"
+        : "#111827",
+    isLight: isLight,
+    accent: ac,
+    amber: "#f59e0b",
+    red: "#ef4444",
+    blue: "#2563eb",
+    purple: "#7c3aed",
+  };
+}
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   AreaChart,
@@ -12,20 +137,28 @@ import {
 } from "recharts";
 
 // ---- THEME ------------------------------------------------------------------
-const T = {
-  bg: "#0a0e1a",
-  surface: "#111827",
-  card: "#161d2e",
-  border: "#1e2a3a",
-  accent: "#22d3a5",
+var T = {
+  bg: "#f0f2f5",
+  surface: "#ffffff",
+  card: "#ffffff",
+  border: "#e2e8f0",
+  text: "#111827",
+  mid: "#6b7280",
+  dim: "#9ca3af",
+  accent: "#2563eb",
   amber: "#f59e0b",
   red: "#ef4444",
-  blue: "#3b82f6",
-  purple: "#8b5cf6",
-  text: "#e2e8f0",
-  mid: "#94a3b8",
-  dim: "#475569",
+  blue: "#2563eb",
+  purple: "#7c3aed",
+  inputBg: "#ffffff",
+  inputBorder: "#d1d5db",
+  terminalBg: "#e8edf2",
+  terminalCard: "#d8e0ea",
+  terminalLED: "#1e293b",
+  shadowCard: "0 1px 4px rgba(0,0,0,0.08)",
+  isLight: true,
 };
+// T is mutated at runtime by buildTheme() before every render
 
 // ---- CONSTANTS --------------------------------------------------------------
 const COMPANY = "Johor Palm Resources Sdn Bhd";
@@ -125,7 +258,7 @@ const DRIVERS0 = [
   {
     id: "d3",
     name: "Kumar Selvam",
-    ic: "790120-01-3003",
+    ic: "790820-01-3003",
     phone: "0197101003",
     rfid: "RF003",
     license: "GDL-003",
@@ -400,6 +533,7 @@ var cardStyle = {
   border: "1px solid " + T.border,
   borderRadius: 12,
   padding: 20,
+  boxShadow: T.shadowCard || "none",
 };
 
 function Card(props) {
@@ -445,12 +579,15 @@ function Btn(props) {
     primary: T.accent,
     danger: T.red,
     amber: T.amber,
-    blue: T.blue,
-    ghost: T.border,
+    blue: T.accent,
+    ghost: "transparent",
   };
   var bg = disabled ? T.border : bgMap[variant] || T.accent;
-  var fg = variant === "ghost" ? T.mid : "#000";
-  var iconColor = disabled ? T.dim : variant === "ghost" ? T.mid : "#000";
+  // White text on all coloured buttons (readable on accent/red/amber)
+  var fg = disabled ? T.dim : variant === "ghost" ? T.text : "#ffffff";
+  var iconColor = disabled ? T.dim : variant === "ghost" ? T.mid : "#ffffff";
+  // Ghost border in light mode needs visibility
+  var btnBorder = variant === "ghost" ? "1px solid " + T.border : "none";
   return (
     <button
       onClick={onClick}
@@ -458,7 +595,7 @@ function Btn(props) {
       style={{
         background: bg,
         color: disabled ? T.dim : fg,
-        border: "none",
+        border: btnBorder,
         borderRadius: 8,
         padding: small ? "5px 10px" : "8px 16px",
         fontSize: small ? 11 : 13,
@@ -479,17 +616,21 @@ function Btn(props) {
   );
 }
 
-var IS = {
-  background: T.bg,
-  border: "1px solid " + T.border,
-  borderRadius: 8,
-  padding: "8px 12px",
-  color: T.text,
-  fontSize: 13,
-  fontFamily: "IBM Plex Mono,monospace",
-  outline: "none",
-  width: "100%",
-};
+// IS is a getter so it always reads current T values after theme is applied
+function getIS() {
+  return {
+    background: T.inputBg || T.bg,
+    border: "1px solid " + (T.inputBorder || T.border),
+    borderRadius: 8,
+    padding: "8px 12px",
+    color: T.text,
+    fontSize: 13,
+    fontFamily: "IBM Plex Mono,monospace",
+    outline: "none",
+    width: "100%",
+  };
+}
+// IS kept as reference (getIS() is used in JSX for live theme values)
 
 function FInput(props) {
   var label = props.label,
@@ -527,7 +668,7 @@ function FInput(props) {
           onChange={function (e) {
             onChange(e.target.value);
           }}
-          style={IS}
+          style={getIS()}
         >
           <option value="">-- Select --</option>
           {options.map(function (o) {
@@ -548,7 +689,7 @@ function FInput(props) {
             onChange(e.target.value);
           }}
           placeholder={placeholder}
-          style={IS}
+          style={getIS()}
         />
       )}
     </div>
@@ -648,7 +789,8 @@ function DataTable(props) {
                   key={ri}
                   style={{ borderBottom: "1px solid " + T.border + "22" }}
                   onMouseEnter={function (e) {
-                    e.currentTarget.style.background = T.surface;
+                    e.currentTarget.style.background =
+                      T.tableHover || T.surface;
                   }}
                   onMouseLeave={function (e) {
                     e.currentTarget.style.background = "transparent";
@@ -887,7 +1029,7 @@ function ScaleSim(props) {
 
   var bmax = Math.max.apply(null, bars.concat([1]));
   var phLbl = ["IDLE", "APPROACHING", "SETTLING", "STABLE", "CAPTURED"];
-  var phCol = [T.dim, T.blue, T.amber, T.accent, T.accent];
+  var phCol = [T.dim, T.mid, T.amber, T.accent, T.accent];
   var seg =
     phase === PH.CAPTURED ? T.accent : phase >= PH.SETTLING ? T.amber : T.dim;
   var digs = String(disp).padStart(6, "0").split("");
@@ -897,7 +1039,7 @@ function ScaleSim(props) {
   else if (phase >= PH.SETTLING) statusLabel = "STABILISING...";
 
   return (
-    <Card style={{ background: "#0a0f1a" }}>
+    <Card style={{ background: T.terminalBg }}>
       <div
         style={{
           display: "flex",
@@ -934,7 +1076,7 @@ function ScaleSim(props) {
 
       <div
         style={{
-          background: "#050a10",
+          background: T.terminalCard,
           borderRadius: 8,
           padding: "4px 0",
           marginBottom: 8,
@@ -946,7 +1088,7 @@ function ScaleSim(props) {
 
       <div
         style={{
-          background: "#050a10",
+          background: T.terminalLED,
           border: "2px solid " + seg + "44",
           borderRadius: 10,
           padding: "10px 14px",
@@ -993,7 +1135,7 @@ function ScaleSim(props) {
           height: 30,
           alignItems: "flex-end",
           margin: "6px 0",
-          background: "#050a10",
+          background: T.terminalCard,
           borderRadius: 6,
           padding: "3px 4px",
         }}
@@ -1182,7 +1324,7 @@ function Login(props) {
                     if (e.key === "Enter") handle();
                   }}
                   placeholder="Enter username"
-                  style={Object.assign({}, IS, { paddingLeft: 32 })}
+                  style={Object.assign({}, getIS(), { paddingLeft: 32 })}
                 />
               </div>
             </div>
@@ -1219,7 +1361,7 @@ function Login(props) {
                     if (e.key === "Enter") handle();
                   }}
                   placeholder="Enter password"
-                  style={Object.assign({}, IS, { paddingLeft: 32 })}
+                  style={Object.assign({}, getIS(), { paddingLeft: 32 })}
                 />
               </div>
             </div>
@@ -1328,14 +1470,14 @@ function Dashboard(props) {
           label="Completed Today"
           value={todayDone.length}
           sub="today completed"
-          color={T.blue}
+          color={T.accent}
           icon="check"
         />
         <StatCard
           label="Today Net Weight"
           value={(todayNet / 1000).toFixed(1) + "t"}
           sub={fmt(todayNet) + " kg"}
-          color={T.purple}
+          color={T.accent}
           icon="chart"
         />
         <StatCard
@@ -1477,7 +1619,7 @@ function Dashboard(props) {
                 return (
                   <Badge
                     label={v === "Cash Bill" ? "Cash Bill" : "Normal Inv"}
-                    color={v === "Cash Bill" ? T.amber : T.blue}
+                    color={v === "Cash Bill" ? T.amber : T.accent}
                   />
                 );
               },
@@ -1489,7 +1631,7 @@ function Dashboard(props) {
                 return (
                   <Badge
                     label={v || "SCALE"}
-                    color={v === "MANUAL" ? T.purple : T.blue}
+                    color={v === "MANUAL" ? T.amber : T.mid}
                   />
                 );
               },
@@ -1948,7 +2090,7 @@ function WeighIn(props) {
           >
             {[
               ["Ticket No", successTicket.id, T.accent],
-              ["Gross Weight", fmt(successTicket.grossKg) + " kg", T.blue],
+              ["Gross Weight", fmt(successTicket.grossKg) + " kg", T.accent],
               [
                 "Transaction",
                 successTicket.txType === "PC"
@@ -2228,7 +2370,11 @@ function WeighIn(props) {
           />
         ) : (
           <Card
-            style={{ background: "#0a0f1a", textAlign: "center", padding: 32 }}
+            style={{
+              background: T.terminalBg,
+              textAlign: "center",
+              padding: 32,
+            }}
           >
             <div
               style={{
@@ -2358,7 +2504,7 @@ function WeighIn(props) {
                 fontFamily: "IBM Plex Mono,monospace",
                 fontSize: 24,
                 fontWeight: 900,
-                color: T.blue,
+                color: T.accent,
               }}
             >
               {fmt(grossKg)} kg
@@ -2503,7 +2649,7 @@ function WeighIn(props) {
               onChange={function (e) {
                 setVehicleId(e.target.value);
               }}
-              style={Object.assign({}, IS)}
+              style={getIS()}
             >
               <option value="">-- Select Vehicle --</option>
               {vehicleOptions.map(function (o) {
@@ -2557,7 +2703,7 @@ function WeighIn(props) {
               onChange={function (e) {
                 setSupplierId(e.target.value);
               }}
-              style={Object.assign({}, IS)}
+              style={getIS()}
             >
               <option value="">
                 {isPurchase
@@ -2615,7 +2761,7 @@ function WeighIn(props) {
               onChange={function (e) {
                 setDriverId(e.target.value);
               }}
-              style={Object.assign({}, IS)}
+              style={getIS()}
             >
               <option value="">-- Select Driver --</option>
               {driverOptions.map(function (o) {
@@ -2736,7 +2882,7 @@ function WeighIn(props) {
                       });
                     }
                   }}
-                  style={Object.assign({}, IS, {
+                  style={Object.assign({}, getIS(), {
                     border: "none",
                     padding: "2px 4px",
                     background: "transparent",
@@ -2813,7 +2959,7 @@ function WeighIn(props) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Card
-          style={{ background: "#0a0f1a", textAlign: "center", padding: 28 }}
+          style={{ background: T.terminalBg, textAlign: "center", padding: 28 }}
         >
           <div
             style={{
@@ -3222,7 +3368,7 @@ function EditTicketModal(props) {
                     onChange={function (e) {
                       if (e.target.value) toggleHarvester(e.target.value);
                     }}
-                    style={Object.assign({}, IS, {
+                    style={Object.assign({}, getIS(), {
                       border: "none",
                       padding: "2px 4px",
                       background: "transparent",
@@ -3447,7 +3593,7 @@ function AuditHistoryModal(props) {
                   padding: "12px 14px",
                   background: T.bg,
                   borderRadius: 8,
-                  borderLeft: "3px solid " + T.blue,
+                  borderLeft: "3px solid " + T.accent,
                 }}
               >
                 <div
@@ -3638,7 +3784,7 @@ function PendingQueue(props) {
           label="Avg Wait"
           value={pending.length ? avgWait + "m" : "--"}
           sub="minutes waiting"
-          color={T.blue}
+          color={T.accent}
           icon="refresh"
         />
       </div>
@@ -3822,129 +3968,57 @@ function WeighOut(props) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 18 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 18 }}>
+      {/* LEFT: Scale + Selected Details + Confirm */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <Card>
-          <div
-            style={{
-              fontSize: 12,
-              color: T.amber,
-              fontWeight: 700,
-              marginBottom: 12,
-              letterSpacing: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Select Vehicle for Weigh-Out ({pending.length})
-          </div>
-          {pending.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 32, color: T.dim }}>
-              No vehicles pending weigh-out
+        {/* Scale Terminal */}
+        {selTx ? (
+          <ScaleSim
+            label={"WEIGH-OUT -- " + selTx.plate}
+            targetWeight={targetTare}
+            onCapture={handleCapture}
+          />
+        ) : (
+          <Card style={{ textAlign: "center", padding: 32 }}>
+            <Ic d={IC.weighOut} size={44} color={T.border} />
+            <div style={{ marginTop: 10, color: T.dim, fontSize: 13 }}>
+              Select a vehicle from the pending list to begin
             </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {pending.map(function (tx) {
-                var isSelected = selected === tx.id;
-                return (
-                  <div
-                    key={tx.id}
-                    onClick={function () {
-                      setSelected(tx.id);
-                      setTareKg(null);
-                    }}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 8,
-                      cursor: "pointer",
-                      background: isSelected ? T.amber + "18" : T.bg,
-                      border: "1px solid " + (isSelected ? T.amber : T.border),
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontFamily: "IBM Plex Mono,monospace",
-                            fontWeight: 700,
-                            color: T.accent,
-                            fontSize: 12,
-                          }}
-                        >
-                          {tx.id}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: T.text,
-                            marginTop: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          <span>{tx.plate}</span>
-                          <span style={{ color: T.dim }}>|</span>
-                          <span>{tx.supplierName}</span>
-                          <Badge
-                            label={
-                              tx.customerType === "Walk-In Customer"
-                                ? "Walk-In"
-                                : "Supplier"
-                            }
-                            color={
-                              tx.customerType === "Walk-In Customer"
-                                ? T.amber
-                                : T.accent
-                            }
-                          />
-                        </div>
-                        <div
-                          style={{ fontSize: 11, color: T.dim, marginTop: 1 }}
-                        >
-                          In: {fmtD(tx.weightIn)} | Gross: {fmt(tx.grossKg)} kg
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 10, color: T.dim }}>
-                          First Weight
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "IBM Plex Mono,monospace",
-                            color: T.blue,
-                            fontSize: 13,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {fmt(tx.grossKg)} kg
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ marginTop: 6, fontSize: 11, color: T.dim }}>
+              Click any pending ticket on the right to load it here.
             </div>
-          )}
-        </Card>
+          </Card>
+        )}
 
+        {/* Selected Transaction Details - shown directly under scale */}
         {selTx && (
           <Card>
             <div
               style={{
-                fontSize: 11,
-                color: T.mid,
-                fontWeight: 700,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 marginBottom: 12,
-                letterSpacing: 0.5,
               }}
             >
-              TRANSACTION -- {selTx.id}
+              <div
+                style={{
+                  fontSize: 11,
+                  color: T.mid,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                }}
+              >
+                Selected Transaction
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Badge
+                  label={selTx.txType === "DC" ? "Delivery" : "Purchase"}
+                  color={selTx.txType === "DC" ? T.purple : T.accent}
+                />
+                {selTx.isModified && <Badge label="Modified" color={T.amber} />}
+              </div>
             </div>
             <div
               style={{
@@ -3957,35 +4031,45 @@ function WeighOut(props) {
             >
               {[
                 ["Ticket No", selTx.id],
-                ["Vehicle", selTx.plate],
+                ["Vehicle No.", selTx.plate],
                 ["Driver", selTx.driverName],
                 ["TX Type", selTx.txTypeName || "Purchase / Receiving"],
                 [
-                  selTx.txType === "DC" ? "Customer / Destination" : "Supplier",
+                  selTx.txType === "DC" ? "Customer / Dest." : "Supplier",
                   selTx.supplierName,
                 ],
                 ["Product", selTx.product || "FFB"],
-                ["First Weight (Gross)", fmt(selTx.grossKg) + " kg"],
+                ["Gross Weight", fmt(selTx.grossKg) + " kg"],
                 ["Time In", fmtD(selTx.weightIn)],
-              ].map(function (pair) {
-                return (
-                  <div key={pair[0]}>
-                    <div
-                      style={{ color: T.dim, fontSize: 10, marginBottom: 1 }}
-                    >
-                      {pair[0]}
+                ["Created By", selTx.createdBy || "--"],
+              ]
+                .concat(
+                  Array.isArray(selTx.harvesters) && selTx.harvesters.length > 0
+                    ? [["Harvester(s)", selTx.harvesters.join(", ")]]
+                    : [],
+                )
+                .concat(selTx.dnNo ? [["DN No.", selTx.dnNo]] : [])
+                .concat(selTx.remarks ? [["Remarks", selTx.remarks]] : [])
+                .map(function (pair) {
+                  return (
+                    <div key={pair[0]}>
+                      <div
+                        style={{ color: T.dim, fontSize: 10, marginBottom: 1 }}
+                      >
+                        {pair[0]}
+                      </div>
+                      <div
+                        style={{
+                          color: T.text,
+                          fontFamily: "IBM Plex Mono,monospace",
+                          fontSize: 12,
+                        }}
+                      >
+                        {pair[1]}
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        color: T.text,
-                        fontFamily: "IBM Plex Mono,monospace",
-                      }}
-                    >
-                      {pair[1]}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -3999,34 +4083,37 @@ function WeighOut(props) {
                   marginBottom: 6,
                 }}
               >
-                TICKET TYPE *
+                Ticket Type *
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                {["Normal Invoice", "Cash Bill"].map(function (t) {
-                  var isActive = ticketType === t;
-                  return (
-                    <button
-                      key={t}
-                      onClick={function () {
-                        setTicketType(t);
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: "10px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        fontWeight: 700,
-                        fontSize: 12,
-                        fontFamily: "IBM Plex Mono,monospace",
-                        background: isActive ? T.blue + "22" : T.bg,
-                        border: "2px solid " + (isActive ? T.blue : T.border),
-                        color: isActive ? T.blue : T.mid,
-                      }}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
+                {["Normal Invoice", "Cash Bill", "Delivery Order"].map(
+                  function (t) {
+                    var isActive = ticketType === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={function () {
+                          setTicketType(t);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "8px 6px",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: 11,
+                          fontFamily: "IBM Plex Mono,monospace",
+                          background: isActive ? T.accent + "22" : T.bg,
+                          border:
+                            "2px solid " + (isActive ? T.accent : T.border),
+                          color: isActive ? T.accent : T.mid,
+                        }}
+                      >
+                        {t}
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
 
@@ -4034,11 +4121,10 @@ function WeighOut(props) {
               <div
                 style={{
                   marginBottom: 12,
-                  padding: "10px 14px",
+                  padding: "12px 14px",
                   background: T.accent + "11",
                   border: "1px solid " + T.accent + "44",
                   borderRadius: 8,
-                  fontSize: 13,
                 }}
               >
                 <div
@@ -4046,7 +4132,6 @@ function WeighOut(props) {
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr 1fr",
                     gap: 12,
-                    marginBottom: 2,
                   }}
                 >
                   <div>
@@ -4058,7 +4143,7 @@ function WeighOut(props) {
                     <div
                       style={{
                         fontFamily: "IBM Plex Mono,monospace",
-                        color: T.blue,
+                        color: T.accent,
                         fontWeight: 700,
                       }}
                     >
@@ -4113,20 +4198,125 @@ function WeighOut(props) {
         )}
       </div>
 
-      <div>
-        {selTx ? (
-          <ScaleSim
-            label={"WEIGH-OUT -- " + selTx.plate}
-            targetWeight={targetTare}
-            onCapture={handleCapture}
-          />
-        ) : (
-          <Card style={{ textAlign: "center", padding: 40 }}>
-            <Ic d={IC.weighOut} size={48} color={T.border} />
-            <div style={{ marginTop: 12, color: T.dim, fontSize: 13 }}>
-              Select a vehicle from the list to begin
+      {/* RIGHT: Scrollable pending list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: T.amber,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+          }}
+        >
+          Pending Queue ({pending.length})
+        </div>
+        {pending.length === 0 ? (
+          <Card style={{ textAlign: "center", padding: 32 }}>
+            <Ic d={IC.check} size={32} color={T.accent} />
+            <div
+              style={{
+                marginTop: 8,
+                color: T.accent,
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              No vehicles pending
             </div>
           </Card>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              maxHeight: "calc(100vh - 180px)",
+              overflowY: "auto",
+              paddingRight: 2,
+            }}
+          >
+            {pending.map(function (tx) {
+              var isSelected = selected === tx.id;
+              return (
+                <div
+                  key={tx.id}
+                  onClick={function () {
+                    setSelected(tx.id);
+                    setTareKg(null);
+                  }}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    background: isSelected ? T.amber + "18" : T.bg,
+                    border: "2px solid " + (isSelected ? T.amber : T.border),
+                    transition: "border-color .12s",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          marginBottom: 2,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: "IBM Plex Mono,monospace",
+                            fontWeight: 700,
+                            color: isSelected ? T.amber : T.accent,
+                            fontSize: 12,
+                          }}
+                        >
+                          {tx.id}
+                        </div>
+                        <Badge
+                          label={tx.txType === "DC" ? "DC" : "PC"}
+                          color={tx.txType === "DC" ? T.purple : T.accent}
+                        />
+                      </div>
+                      <div
+                        style={{ fontSize: 12, color: T.text, fontWeight: 600 }}
+                      >
+                        {tx.plate}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.mid, marginTop: 1 }}>
+                        {tx.supplierName}
+                      </div>
+                      <div style={{ fontSize: 10, color: T.dim, marginTop: 2 }}>
+                        {fmtD(tx.weightIn)} | {fmt(tx.grossKg)} kg
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <div
+                        style={{
+                          fontSize: 9,
+                          color: T.amber,
+                          fontWeight: 700,
+                          marginLeft: 6,
+                          marginTop: 2,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        SELECTED
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
@@ -4397,7 +4587,7 @@ function TicketRecords(props) {
             }}
           >
             {[
-              ["Gross Weight", fmt(viewTx.grossKg) + " kg", T.blue],
+              ["Gross Weight", fmt(viewTx.grossKg) + " kg", T.accent],
               [
                 "Tare Weight",
                 viewTx.tareKg != null ? fmt(viewTx.tareKg) + " kg" : "Pending",
@@ -4552,7 +4742,7 @@ function TicketRecords(props) {
               setSearch(e.target.value);
             }}
             placeholder="Search ticket no, vehicle, supplier, driver..."
-            style={Object.assign({}, IS, { paddingLeft: 30 })}
+            style={Object.assign({}, getIS(), { paddingLeft: 30 })}
           />
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -4561,7 +4751,7 @@ function TicketRecords(props) {
             { id: "PC", label: "Purchase", color: T.accent },
             { id: "DC", label: "Delivery", color: T.purple },
             { id: "pending", label: "Pending", color: T.amber },
-            { id: "completed", label: "Completed", color: T.blue },
+            { id: "completed", label: "Completed", color: T.accent },
           ].map(function (f) {
             return (
               <button
@@ -4570,7 +4760,7 @@ function TicketRecords(props) {
                   setFilter(f.id);
                 }}
                 style={{
-                  background: filter === f.id ? f.color + "22" : T.border,
+                  background: filter === f.id ? f.color + "22" : T.surface,
                   color: filter === f.id ? f.color : T.mid,
                   border: "1px solid " + (filter === f.id ? f.color : T.border),
                   borderRadius: 6,
@@ -4770,7 +4960,7 @@ function PrintPreview(props) {
   var txLabel = isPurch
     ? "PURCHASE / RECEIVING TICKET"
     : "DELIVERY / DESPATCH TICKET";
-  var txColor = isPurch ? "#16a34a" : "#7c3aed";
+  var txColor = isPurch ? "#1a7a3c" : "#6b21a8"; // print-safe semantic colors
   return (
     <div
       style={{
@@ -4819,8 +5009,8 @@ function PrintPreview(props) {
               style={{
                 marginTop: 4,
                 display: "inline-block",
-                background: "#fffbeb",
-                border: "1px solid #f59e0b",
+                background: "#fff8e1",
+                border: "1px solid #f0a000",
                 borderRadius: 4,
                 padding: "2px 8px",
                 fontSize: 10,
@@ -5044,7 +5234,7 @@ function PrintPreview(props) {
             style={{
               marginBottom: 10,
               padding: "6px 10px",
-              background: "#f9f9f9",
+              background: "#f5f5f5",
               borderRadius: 4,
               fontSize: 11,
             }}
@@ -5057,8 +5247,8 @@ function PrintPreview(props) {
             style={{
               marginBottom: 10,
               padding: "6px 10px",
-              background: "#fffbeb",
-              border: "1px solid #f59e0b",
+              background: "#fff8e1",
+              border: "1px solid #f0a000",
               borderRadius: 4,
               fontSize: 11,
             }}
@@ -5308,7 +5498,7 @@ function CrudMod(props) {
               setSearch(e.target.value);
             }}
             placeholder={"Search " + title.toLowerCase() + "..."}
-            style={Object.assign({}, IS, { paddingLeft: 30 })}
+            style={Object.assign({}, getIS(), { paddingLeft: 30 })}
           />
         </div>
         <Btn label={"Add " + title} icon="plus" onClick={openNew} />
@@ -5379,7 +5569,7 @@ function SupplierMgmt(props) {
   return (
     <CrudMod
       title="Customer / Supplier"
-      color={T.purple}
+      color={T.accent}
       items={props.suppliers}
       setItems={props.setSuppliers}
       buildEmpty={function () {
@@ -5447,7 +5637,7 @@ function VehicleMgmt(props) {
   return (
     <CrudMod
       title="Vehicle"
-      color={T.blue}
+      color={T.accent}
       items={props.vehicles}
       setItems={props.setVehicles}
       buildEmpty={function () {
@@ -5530,7 +5720,7 @@ function VehicleMgmt(props) {
           label: "RFID",
           render: function (v) {
             return v ? (
-              <Badge label={v} color={T.blue} />
+              <Badge label={v} color={T.mid} />
             ) : (
               <span style={{ color: T.dim }}>--</span>
             );
@@ -5591,7 +5781,7 @@ function DriverMgmt(props) {
           label: "RFID",
           render: function (v) {
             return v ? (
-              <Badge label={v} color={T.blue} />
+              <Badge label={v} color={T.mid} />
             ) : (
               <span style={{ color: T.dim }}>--</span>
             );
@@ -5750,12 +5940,7 @@ function AppSettings(props) {
               key: "role",
               label: "Role",
               render: function (v) {
-                return (
-                  <Badge
-                    label={v.toUpperCase()}
-                    color={v === "admin" ? T.accent : T.blue}
-                  />
-                );
+                return <Badge label={v.toUpperCase()} color={T.accent} />;
               },
             },
           ]}
@@ -5804,10 +5989,179 @@ function AppSettings(props) {
                 }}
               >
                 <span style={{ fontSize: 12, color: T.text }}>{m}</span>
-                <Badge label="Future" color={T.purple} />
+                <Badge label="Future" color={T.mid} />
               </div>
             );
           })}
+        </div>
+      </Card>
+
+      <Card>
+        <div
+          style={{
+            fontSize: 12,
+            color: T.accent,
+            fontWeight: 700,
+            marginBottom: 14,
+          }}
+        >
+          APPEARANCE MODE
+        </div>
+        <div style={{ fontSize: 11, color: T.mid, marginBottom: 12 }}>
+          Control the light or dark background of the interface. Saved and
+          applied after refresh.
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+            gap: 10,
+            marginBottom: 18,
+          }}
+        >
+          {Object.keys(APPEARANCES).map(function (k) {
+            var ap = APPEARANCES[k];
+            var isA = (props.appearance || "light") === k;
+            return (
+              <button
+                key={k}
+                onClick={function () {
+                  props.setAppearance && props.setAppearance(k);
+                }}
+                style={{
+                  padding: "14px 12px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  background: isA ? T.accent + "22" : T.bg,
+                  border: "2px solid " + (isA ? T.accent : T.border),
+                }}
+              >
+                <div style={{ fontSize: 18, marginBottom: 6 }}>
+                  {k === "light"
+                    ? "L"
+                    : k === "dark"
+                      ? "D"
+                      : k === "classic"
+                        ? "C"
+                        : "S"}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: isA ? T.accent : T.text,
+                  }}
+                >
+                  {ap.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: T.dim,
+                    marginTop: 3,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {ap.desc}
+                </div>
+                {isA && (
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: T.accent,
+                      marginTop: 4,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Active
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: T.accent,
+            fontWeight: 700,
+            marginBottom: 12,
+          }}
+        >
+          ACCENT COLOUR
+        </div>
+        <div style={{ fontSize: 11, color: T.mid, marginBottom: 10 }}>
+          Controls buttons, active menu, badges, and highlights. Works with any
+          appearance mode.
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {Object.keys(ACCENTS).map(function (k) {
+            var ac = ACCENTS[k];
+            var isA = (props.accentKey || "blue") === k;
+            return (
+              <button
+                key={k}
+                onClick={function () {
+                  props.setAccentKey && props.setAccentKey(k);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  background: isA ? ac.hex + "22" : T.bg,
+                  border: "2px solid " + (isA ? ac.hex : T.border),
+                }}
+              >
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: ac.hex,
+                    flexShrink: 0,
+                  }}
+                ></div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: isA ? ac.hex : T.text,
+                    }}
+                  >
+                    {ac.label}
+                  </div>
+                  {isA && (
+                    <div style={{ fontSize: 9, color: ac.hex }}>Active</div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            marginTop: 14,
+            padding: "10px 12px",
+            background: T.bg,
+            borderRadius: 8,
+            fontSize: 11,
+            color: T.dim,
+          }}
+        >
+          Current:{" "}
+          <span style={{ color: T.accent, fontWeight: 700 }}>
+            {(APPEARANCES[props.appearance || "light"] || {}).label}
+          </span>
+          {" + "}
+          <span style={{ color: T.accent, fontWeight: 700 }}>
+            {(ACCENTS[props.accentKey || "blue"] || {}).label}
+          </span>{" "}
+          accent
         </div>
       </Card>
 
@@ -6065,7 +6419,7 @@ function AIPayroll() {
         Math.round(totalNet).toLocaleString("en-MY"),
     },
     {
-      color: T.blue,
+      color: T.mid,
       text:
         "Average working days this period: " +
         (totalDays / PAYROLL_WORKERS.length).toFixed(1) +
@@ -6166,7 +6520,7 @@ function AIPayroll() {
                 }).length
               }
               sub="with valid records"
-              color={T.blue}
+              color={T.accent}
               icon="check"
             />
             <StatCard
@@ -6224,7 +6578,7 @@ function AIPayroll() {
                 fontSize: 13,
               }}
             >
-              <span style={{ color: T.blue }}>Basic Salary</span>
+              <span style={{ color: T.accent }}>Basic Salary</span>
               <span style={{ color: T.dim }}>+</span>
               <span style={{ color: T.accent }}>Overtime Pay</span>
               <span style={{ color: T.dim }}>-</span>
@@ -6366,7 +6720,7 @@ function AIPayroll() {
                         style={{
                           padding: "8px 10px",
                           fontFamily: "IBM Plex Mono,monospace",
-                          color: T.blue,
+                          color: T.accent,
                         }}
                       >
                         {"RM " + w.basic.toLocaleString("en-MY")}
@@ -6424,7 +6778,7 @@ function AIPayroll() {
                       padding: "10px",
                       fontFamily: "IBM Plex Mono,monospace",
                       fontWeight: 700,
-                      color: T.blue,
+                      color: T.accent,
                       fontSize: 12,
                     }}
                   >
@@ -6482,7 +6836,7 @@ function AIPayroll() {
 
       {tab === "insights" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Card style={{ borderColor: T.purple + "44", background: T.card }}>
+          <Card style={{ borderColor: T.accent + "44", background: T.card }}>
             <div
               style={{
                 display: "flex",
@@ -6496,13 +6850,13 @@ function AIPayroll() {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  background: T.purple + "22",
+                  background: T.accent + "22",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Ic d={IC.chart} size={16} color={T.purple} />
+                <Ic d={IC.chart} size={16} color={T.accent} />
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
@@ -6630,11 +6984,11 @@ function AIPayroll() {
           <div
             style={{
               padding: "10px 16px",
-              background: T.blue + "11",
-              border: "1px solid " + T.blue + "33",
+              background: T.accent + "11",
+              border: "1px solid " + T.accent + "33",
               borderRadius: 8,
               fontSize: 12,
-              color: T.blue,
+              color: T.accent,
             }}
           >
             <strong>Next Steps (Future Phases):</strong> Connect attendance
@@ -6653,7 +7007,7 @@ function FutureModules() {
   var phases = [
     {
       phase: "Phase 2",
-      color: T.blue,
+      color: T.accent,
       label: "Available for Development",
       items: [
         {
@@ -6753,7 +7107,7 @@ function FutureModules() {
     },
   ];
   var statusColors = {
-    "Available for Development": T.blue,
+    "Available for Development": T.accent,
     Planned: T.amber,
     "Future Expansion": T.accent,
   };
@@ -6862,11 +7216,11 @@ function FutureModules() {
       <div
         style={{
           padding: "12px 16px",
-          background: T.blue + "11",
-          border: "1px solid " + T.blue + "33",
+          background: T.accent + "11",
+          border: "1px solid " + T.accent + "33",
           borderRadius: 8,
           fontSize: 12,
-          color: T.blue,
+          color: T.accent,
           lineHeight: 1.7,
         }}
       >
@@ -6903,17 +7257,17 @@ function ComingSoon(props) {
             width: 60,
             height: 60,
             borderRadius: "50%",
-            background: T.purple + "22",
-            border: "2px solid " + T.purple + "66",
+            background: T.accent + "22",
+            border: "2px solid " + T.accent + "66",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 20px",
           }}
         >
-          <Ic d={IC.rocket} size={28} color={T.purple} />
+          <Ic d={IC.rocket} size={28} color={T.accent} />
         </div>
-        <Badge label="COMING SOON" color={T.purple} />
+        <Badge label="COMING SOON" color={T.accent} />
         <div
           style={{
             fontSize: 18,
@@ -6938,11 +7292,11 @@ function ComingSoon(props) {
         <div
           style={{
             padding: "10px 16px",
-            background: T.purple + "11",
-            border: "1px solid " + T.purple + "33",
+            background: T.accent + "11",
+            border: "1px solid " + T.accent + "33",
             borderRadius: 8,
             fontSize: 12,
-            color: T.purple,
+            color: T.accent,
           }}
         >
           This module is planned for a future development phase. It is not
@@ -6985,6 +7339,11 @@ export default function PalmWeighPro() {
   var [collapsed, setCollapsed] = useState(false);
   var [printTx, setPrintTx] = useState(null);
   var [queueTarget, setQueueTarget] = useState(null);
+  var [appearance, setAppearance] = useLS("pw4_appearance", "light");
+  var [accentKey, setAccentKey] = useLS("pw4_accent", "blue");
+  // Build and apply theme before every render
+  var activeTheme = buildTheme(appearance, accentKey);
+  Object.assign(T, activeTheme);
 
   var pending = txs.filter(function (t) {
     return t.status === "pending_out" && t.stationId === station;
@@ -7017,7 +7376,14 @@ export default function PalmWeighPro() {
             T.bg +
             ";font-family:'IBM Plex Sans',sans-serif;color:" +
             T.text +
-            ";}",
+            ";transition:background .2s,color .2s;}",
+          "* { transition: background-color .15s, border-color .15s; }",
+          "a { color: " + T.accent + "; }",
+          ".pw-active-nav { border-left-color: " +
+            T.accent +
+            " !important; color: " +
+            T.accent +
+            " !important; }",
           "::-webkit-scrollbar{width:5px;height:5px;}",
           "::-webkit-scrollbar-track{background:" + T.bg + ";}",
           "::-webkit-scrollbar-thumb{background:" +
@@ -7076,7 +7442,7 @@ export default function PalmWeighPro() {
                   PALMWEIGH
                 </div>
                 <div style={{ fontSize: 9, color: T.dim, letterSpacing: 1.5 }}>
-                  PRO - SABAH
+                  PRO
                 </div>
               </div>
             )}
@@ -7124,7 +7490,7 @@ export default function PalmWeighPro() {
                 onChange={function (e) {
                   setStation(e.target.value);
                 }}
-                style={Object.assign({}, IS, {
+                style={Object.assign({}, getIS(), {
                   fontSize: 11,
                   padding: "5px 8px",
                 })}
@@ -7269,6 +7635,80 @@ export default function PalmWeighPro() {
                 color: T.dim,
               }}
             >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 3,
+                    padding: "3px 6px",
+                    background: T.bg,
+                    borderRadius: 6,
+                    border: "1px solid " + T.border,
+                  }}
+                >
+                  {[
+                    { k: "light", label: "L", title: "Light Mode" },
+                    { k: "dark", label: "D", title: "Dark Mode" },
+                    { k: "classic", label: "C", title: "Classic Dark" },
+                    { k: "system", label: "S", title: "System Default" },
+                  ].map(function (m) {
+                    var isA = appearance === m.k;
+                    return (
+                      <button
+                        key={m.k}
+                        onClick={function () {
+                          setAppearance(m.k);
+                        }}
+                        title={m.title}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          border: "none",
+                          cursor: "pointer",
+                          background: isA ? T.accent : "transparent",
+                          color: isA ? T.bg : T.mid,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          fontFamily: "IBM Plex Mono,monospace",
+                          padding: 0,
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {Object.keys(ACCENTS).map(function (k) {
+                    var ac = ACCENTS[k];
+                    return (
+                      <button
+                        key={k}
+                        onClick={function () {
+                          setAccentKey(k);
+                        }}
+                        title={ac.label}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: ac.hex,
+                          border: "none",
+                          cursor: "pointer",
+                          outline:
+                            accentKey === k
+                              ? "3px solid " + T.text
+                              : "2px solid " + T.border + "88",
+                          outlineOffset: 1,
+                          padding: 0,
+                          flexShrink: 0,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
               {pending > 0 && (
                 <Badge label={pending + " pending"} color={T.amber} />
               )}
@@ -7287,8 +7727,9 @@ export default function PalmWeighPro() {
 
           <div
             style={{
-              background: "#0d1829",
-              borderBottom: "1px solid " + T.border,
+              background: T.isLight ? T.amber + "18" : T.surface,
+              borderBottom:
+                "1px solid " + (T.isLight ? T.amber + "66" : T.border),
               padding: "8px 18px",
               display: "flex",
               alignItems: "center",
@@ -7415,6 +7856,10 @@ export default function PalmWeighPro() {
                 setHarvesters={setHarvesters}
                 setAuditLog={setAuditLog}
                 auditLog={auditLog}
+                appearance={appearance}
+                setAppearance={setAppearance}
+                accentKey={accentKey}
+                setAccentKey={setAccentKey}
                 users={users}
                 currentUser={currentUser}
               />
